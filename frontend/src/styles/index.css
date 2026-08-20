@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-gym-border;
+  }
+
+  body {
+    @apply bg-gym-bg text-gym-text-primary antialiased;
+  }
+
+  ::selection {
+    @apply bg-gym-gold/30 text-white;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-gym-gold ring-offset-2 ring-offset-gym-bg;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer components {
+  .section-padding {
+    @apply px-4 py-24 md:px-6 md:py-32;
+  }
+
+  .content-max-width {
+    @apply mx-auto w-full max-w-7xl;
+  }
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2A2A2A #0A0A0A;
+}

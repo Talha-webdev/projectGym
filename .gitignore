@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build
+dist/
+build/
+
+# Environment
+.env
+.env.*
+!.env.example
+.env.local
+*.env.local
+
+# Secrets
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+secrets.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite3
+
+# Docker
+docker-data/
+
+# Python
+*.egg-info/
+.pytest_cache/
+coverage/

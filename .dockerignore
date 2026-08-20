@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build
+dist/
+build/
+
+# Environment
+.env
+.env.local
+*.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite3
+
+# Docker
+docker-data/
+
+# Python
+*.egg-info/
+.pytest_cache/
+coverage/
+.pytest_cache
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Docs
+docs/
+
+# Tests (not needed in production image)
+backend/tests/
+backend/alembic/versions/
