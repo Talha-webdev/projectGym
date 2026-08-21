@@ -1,5 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.config import settings
 from app.models.video import Video
 from app.models.blog import Blog
 
@@ -63,6 +64,7 @@ URL_ENTRY = """  <url>
 
 
 def build_sitemap_xml(urls: list[dict]) -> str:
+    base_url = settings.FRONTEND_URL.rstrip("/")
     entries = []
     for u in urls:
         lastmod = ""
@@ -70,7 +72,7 @@ def build_sitemap_xml(urls: list[dict]) -> str:
             lastmod = f"\n    <lastmod>{u['lastmod']}</lastmod>"
         entries.append(
             URL_ENTRY.format(
-                loc=f"https://projectgym.com{u['loc']}",
+                loc=f"{base_url}{u['loc']}",
                 priority=u["priority"],
                 changefreq=u["changefreq"],
                 lastmod=lastmod,
@@ -79,12 +81,12 @@ def build_sitemap_xml(urls: list[dict]) -> str:
     return SITEMAP_TEMPLATE.format(entries="\n".join(entries))
 
 
-ROBOTS_TXT = """User-agent: *
+ROBOTS_TXT = f"""User-agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /profile/
 Disallow: /dashboard/
 Disallow: /membership/
 
-Sitemap: https://projectgym.com/sitemap.xml
+Sitemap: {settings.FRONTEND_URL.rstrip('/')}/sitemap.xml
 """

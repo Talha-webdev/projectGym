@@ -18,6 +18,22 @@ from datetime import datetime, timezone
 router = APIRouter(prefix="/videos", tags=["videos"])
 
 
+async def _has_premium_access(db: AsyncSession, user: User | None) -> bool:
+    if user is None:
+        return False
+    if user.is_admin:
+        return True
+    now = datetime.now(timezone.utc)
+    result = await db.execute(
+        select(Membership).where(
+            Membership.user_id == user.id,
+            Membership.is_active == True,
+            Membership.end_date > now,
+        )
+    )
+    return result.scalar_one_or_none() is not None
+
+
 @router.get("")
 async def list_videos(
     page: int = Query(1, ge=1),
@@ -26,15 +42,24 @@ async def list_videos(
     search: str | None = Query(None),
     premium_only: bool | None = Query(None),
     db: AsyncSession = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
 ):
     service = VideoService(db)
-    return await service.get_list(
+    result = await service.get_list(
         page=page,
         per_page=per_page,
         category_slug=category,
         search=search,
         premium_only=premium_only,
     )
+
+    has_access = await _has_premium_access(db, current_user)
+    if not has_access:
+        for item in result.get("items", []):
+            if item.get("is_premium"):
+                item["cloudinary_url"] = ""
+
+    return result
 
 
 @router.get("/categories/list", response_model=list[CategoryResponse])
@@ -57,17 +82,7 @@ async def get_video(
 
     resp = VideoResponse.model_validate(video)
     if video.is_premium:
-        has_access = bool(current_user and current_user.is_admin)
-        if not has_access and current_user:
-            memberships = await db.execute(
-                select(Membership).where(
-                    Membership.user_id == current_user.id,
-                    Membership.is_active == True,
-                    Membership.end_date > datetime.now(timezone.utc),
-                )
-            )
-            has_access = memberships.scalar_one_or_none() is not None
-
+        has_access = await _has_premium_access(db, current_user)
         if not has_access:
             resp.cloudinary_url = ""
             resp.description = "Premium content. Join Project GYM to unlock full access."

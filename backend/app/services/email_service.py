@@ -122,3 +122,51 @@ async def send_password_reset_email(email: str, full_name: str, token: str) -> b
     reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
     html = build_password_reset_email(full_name, reset_url)
     return await send_email(email, "Reset your Project GYM password", html)
+
+
+def build_contact_email(name: str, email: str, subject: str, message: str) -> str:
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#0A0A0A;font-family:Inter,Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0A0A0A;padding:40px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+<tr><td style="text-align:center;padding:0 0 24px;">
+<span style="font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:700;color:#D4A853;">Project GYM</span>
+</td></tr>
+<tr><td style="background-color:#1A1A1A;border:1px solid #2A2A2A;border-radius:16px;padding:40px;">
+<h1 style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:24px;font-weight:700;color:#FFFFFF;margin:0 0 8px;">New Contact Message</h1>
+<table cellpadding="0" cellspacing="0" style="width:100%;margin:24px 0;">
+<tr><td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#6B6B6B;width:100px;vertical-align:top;">From</td>
+<td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#FFFFFF;">{name}</td></tr>
+<tr><td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#6B6B6B;vertical-align:top;">Email</td>
+<td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#D4A853;"><a href="mailto:{email}" style="color:#D4A853;text-decoration:none;">{email}</a></td></tr>
+<tr><td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#6B6B6B;vertical-align:top;">Subject</td>
+<td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#FFFFFF;">{subject}</td></tr>
+</table>
+<hr style="border:none;border-top:1px solid #2A2A2A;margin:16px 0;">
+<p style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:16px;color:#A0A0A0;margin:0;line-height:1.6;white-space:pre-wrap;">{message}</p>
+<hr style="border:none;border-top:1px solid #2A2A2A;margin:24px 0;">
+<p style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:12px;color:#6B6B6B;margin:0;text-align:center;">
+This message was sent via the Project GYM contact form.
+</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
+
+
+async def send_contact_email(name: str, email: str, subject: str, message: str) -> bool:
+    admin_email = settings.ADMIN_EMAIL
+    if not admin_email:
+        logger.warning("ADMIN_EMAIL not set; cannot deliver contact form submission")
+        return False
+    html = build_contact_email(name, email, subject, message)
+    return await send_email(
+        admin_email,
+        f"Contact Form: {subject}",
+        html,
+    )

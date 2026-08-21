@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Plus, Play, Edit3, Trash2, Search } from "lucide-react";
+import { Plus, Play, Edit3, Trash2, Search, Upload, Image } from "lucide-react";
 import { useVideos, useCategories } from "@/hooks/useVideos";
-import { useCreateVideo, useUpdateVideo, useDeleteVideo } from "@/hooks/useAdmin";
+import { useUpdateVideo, useDeleteVideo, useUploadVideo, useUploadThumbnail } from "@/hooks/useAdmin";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -13,9 +13,8 @@ import type { Video } from "@/types/video";
 interface VideoForm {
   title: string;
   description: string;
-  cloudinary_public_id: string;
-  cloudinary_url: string;
-  thumbnail_url: string;
+  videoFile: File | null;
+  thumbnailFile: File | null;
   duration: string;
   is_premium: boolean;
   category_ids: string[];
@@ -24,13 +23,19 @@ interface VideoForm {
 const emptyForm: VideoForm = {
   title: "",
   description: "",
-  cloudinary_public_id: "",
-  cloudinary_url: "",
-  thumbnail_url: "",
+  videoFile: null,
+  thumbnailFile: null,
   duration: "",
   is_premium: false,
   category_ids: [],
 };
+
+function formatFileSize(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} B`;
+}
 
 export default function AdminVideos() {
   const [search, setSearch] = useState("");
@@ -39,19 +44,24 @@ export default function AdminVideos() {
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
   const [form, setForm] = useState<VideoForm>(emptyForm);
   const [formError, setFormError] = useState("");
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
   const params: Record<string, string | number> = { page, per_page: 10 };
   if (search) params.search = search;
   const { data, isLoading, error } = useVideos(params);
   const { data: categories } = useCategories();
-  const createMutation = useCreateVideo();
+  const createMutation = useUploadVideo();
+  const thumbnailMutation = useUploadThumbnail();
   const updateMutation = useUpdateVideo();
   const deleteMutation = useDeleteVideo();
 
   const openCreate = () => {
     setEditingVideo(null);
     setForm(emptyForm);
+    setThumbnailPreview(null);
     setFormError("");
+    setUploadProgress(null);
     setModalOpen(true);
   };
 
@@ -60,15 +70,28 @@ export default function AdminVideos() {
     setForm({
       title: video.title,
       description: video.description || "",
-      cloudinary_public_id: "",
-      cloudinary_url: video.cloudinary_url,
-      thumbnail_url: video.thumbnail_url || "",
+      videoFile: null,
+      thumbnailFile: null,
       duration: video.duration?.toString() || "",
       is_premium: video.is_premium,
       category_ids: [],
     });
+    setThumbnailPreview(null);
     setFormError("");
+    setUploadProgress(null);
     setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
+    setThumbnailPreview(null);
+  };
+
+  const handleThumbnailChange = (file: File | null) => {
+    setForm((f) => ({ ...f, thumbnailFile: file }));
+    if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
+    setThumbnailPreview(file ? URL.createObjectURL(file) : null);
   };
 
   const handleDelete = async (video: Video) => {
@@ -82,36 +105,67 @@ export default function AdminVideos() {
 
   const handleSubmit = async () => {
     setFormError("");
+    setUploadProgress(null);
     if (!form.title.trim()) { setFormError("Title is required"); return; }
-    if (!form.cloudinary_url.trim() && !editingVideo) { setFormError("Cloudinary URL is required"); return; }
 
-    const payload: Record<string, unknown> = {
-      title: form.title.trim(),
-      description: form.description.trim() || null,
-      cloudinary_url: form.cloudinary_url.trim(),
-      thumbnail_url: form.thumbnail_url.trim() || null,
-      is_premium: form.is_premium,
-    };
-    if (form.duration) payload.duration = parseInt(form.duration, 10);
-    if (form.category_ids.length > 0) payload.category_ids = form.category_ids;
-    if (!editingVideo) {
-      if (!form.cloudinary_public_id.trim()) { setFormError("Cloudinary public ID is required"); return; }
-      payload.cloudinary_public_id = form.cloudinary_public_id.trim();
+    if (editingVideo) {
+      const payload: Record<string, unknown> = {
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        is_premium: form.is_premium,
+      };
+      if (form.duration) payload.duration = parseInt(form.duration, 10);
+      if (form.category_ids.length > 0) payload.category_ids = form.category_ids;
+      try {
+        if (form.thumbnailFile) {
+          const tfd = new FormData();
+          tfd.append("file", form.thumbnailFile);
+          const thumb = await thumbnailMutation.mutateAsync({
+            formData: tfd,
+            onUploadProgress: (e) => {
+              if (e.total) setUploadProgress(Math.round((e.loaded / e.total) * 100));
+            },
+          });
+          payload.thumbnail_url = thumb.thumbnail_url;
+        }
+        await updateMutation.mutateAsync({ slug: editingVideo.slug, data: payload });
+        setModalOpen(false);
+      } catch {
+        setFormError("Failed to save video. Check your input and try again.");
+      } finally {
+        setUploadProgress(null);
+      }
+      return;
     }
 
+    if (!form.videoFile) { setFormError("Please select a video file"); return; }
+
+    const fd = new FormData();
+    fd.append("file", form.videoFile);
+    fd.append("title", form.title.trim());
+    if (form.description.trim()) fd.append("description", form.description.trim());
+    if (form.duration) fd.append("duration", parseInt(form.duration, 10).toString());
+    fd.append("is_premium", String(form.is_premium));
+    if (form.category_ids.length > 0) fd.append("category_ids", form.category_ids.join(","));
+    if (form.thumbnailFile) fd.append("thumbnail", form.thumbnailFile);
+
     try {
-      if (editingVideo) {
-        await updateMutation.mutateAsync({ slug: editingVideo.slug, data: payload });
-      } else {
-        await createMutation.mutateAsync(payload);
-      }
+      await createMutation.mutateAsync({
+        formData: fd,
+        onUploadProgress: (e) => {
+          if (e.total) setUploadProgress(Math.round((e.loaded / e.total) * 100));
+        },
+      });
       setModalOpen(false);
     } catch {
-      setFormError("Failed to save video. Check your input and try again.");
+      setFormError("Failed to upload video. Check the file type/size and try again.");
+    } finally {
+      setUploadProgress(null);
     }
   };
 
-  const isSaving = createMutation.isPending || updateMutation.isPending;
+  const isSaving = createMutation.isPending || thumbnailMutation.isPending || updateMutation.isPending;
+  const currentThumbnail = thumbnailPreview || editingVideo?.thumbnail_url || null;
 
   return (
     <div>
@@ -234,10 +288,21 @@ export default function AdminVideos() {
         </div>
       )}
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingVideo ? "Edit Video" : "New Video"}>
+      <Modal isOpen={modalOpen} onClose={closeModal} title={editingVideo ? "Edit Video" : "New Video"}>
         <div className="space-y-4">
           {formError && (
             <div className="rounded-lg border border-gym-error/30 bg-gym-error/5 p-3 text-sm text-gym-error">{formError}</div>
+          )}
+          {uploadProgress !== null && (
+            <div>
+              <div className="mb-1 flex items-center justify-between text-xs text-gym-text-secondary">
+                <span>Uploading…</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-gym-elevated">
+                <div className="h-full rounded-full bg-gym-gold transition-all" style={{ width: `${uploadProgress}%` }} />
+              </div>
+            </div>
           )}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Title *</label>
@@ -250,23 +315,49 @@ export default function AdminVideos() {
               className="w-full rounded-lg border border-gym-border-light bg-gym-surface px-4 py-2.5 text-sm text-gym-text-primary outline-none focus:border-gym-gold focus:ring-1 focus:ring-gym-gold" />
           </div>
           {!editingVideo && (
-            <>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Cloudinary Public ID *</label>
-                <input type="text" value={form.cloudinary_public_id} onChange={(e) => setForm((f) => ({ ...f, cloudinary_public_id: e.target.value }))}
-                  className="w-full rounded-lg border border-gym-border-light bg-gym-surface px-4 py-2.5 text-sm text-gym-text-primary outline-none focus:border-gym-gold focus:ring-1 focus:ring-gym-gold" />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Cloudinary URL *</label>
-                <input type="url" value={form.cloudinary_url} onChange={(e) => setForm((f) => ({ ...f, cloudinary_url: e.target.value }))}
-                  className="w-full rounded-lg border border-gym-border-light bg-gym-surface px-4 py-2.5 text-sm text-gym-text-primary outline-none focus:border-gym-gold focus:ring-1 focus:ring-gym-gold" />
-              </div>
-            </>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Video File *</label>
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-gym-border-light bg-gym-surface px-4 py-3 text-sm text-gym-text-secondary transition-colors hover:border-gym-gold">
+                <Upload className="h-5 w-5 text-gym-text-muted" />
+                <span className="flex-1">
+                  {form.videoFile ? (
+                    <span className="text-gym-text-primary">
+                      {form.videoFile.name} <span className="text-gym-text-muted">({formatFileSize(form.videoFile.size)})</span>
+                    </span>
+                  ) : (
+                    "Select a video file (MP4, WebM, MOV, AVI)"
+                  )}
+                </span>
+                <input
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.mkv,.avi"
+                  className="sr-only"
+                  onChange={(e) => setForm((f) => ({ ...f, videoFile: e.target.files?.[0] || null }))}
+                />
+              </label>
+            </div>
           )}
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Thumbnail URL</label>
-            <input type="url" value={form.thumbnail_url} onChange={(e) => setForm((f) => ({ ...f, thumbnail_url: e.target.value }))}
-              className="w-full rounded-lg border border-gym-border-light bg-gym-surface px-4 py-2.5 text-sm text-gym-text-primary outline-none focus:border-gym-gold focus:ring-1 focus:ring-gym-gold" />
+            <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">
+              {editingVideo ? "Thumbnail (optional — replaces current)" : "Thumbnail"}
+            </label>
+            {currentThumbnail && (
+              <div className="mb-2 overflow-hidden rounded-lg border border-gym-border-light">
+                <img src={currentThumbnail} alt="Thumbnail preview" className="h-24 w-full object-cover" />
+              </div>
+            )}
+            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-gym-border-light bg-gym-surface px-4 py-3 text-sm text-gym-text-secondary transition-colors hover:border-gym-gold">
+              <Image className="h-5 w-5 text-gym-text-muted" />
+              <span className="flex-1">
+                {form.thumbnailFile ? form.thumbnailFile.name : "Select a thumbnail image (JPEG, PNG, WebP)"}
+              </span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp,image/avif,.jpg,.jpeg,.png,.gif,.webp,.avif"
+                className="sr-only"
+                onChange={(e) => handleThumbnailChange(e.target.files?.[0] || null)}
+              />
+            </label>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -290,9 +381,9 @@ export default function AdminVideos() {
             <span className="text-sm text-gym-text-primary">Premium (members-only)</span>
           </label>
           <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={closeModal}>Cancel</Button>
             <Button onClick={handleSubmit} isLoading={isSaving}>
-              {editingVideo ? "Update Video" : "Create Video"}
+              {editingVideo ? "Update Video" : "Upload Video"}
             </Button>
           </div>
         </div>

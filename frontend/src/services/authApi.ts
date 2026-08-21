@@ -21,4 +21,13 @@ export const authApi = {
 
   changePassword: (data: { current_password: string; new_password: string }) =>
     api.patch("/users/me/password", data),
+
+  forgotPassword: (email: string) =>
+    api.post<{ message: string }>("/auth/forgot-password", { email }),
+
+  resetPassword: (token: string, password: string) =>
+    api.post<{ message: string }>("/auth/reset-password", { token, password }),
+
+  verifyEmail: (token: string) =>
+    api.post<{ message: string }>("/auth/verify-email", { token }),
 };

@@ -45,13 +45,23 @@ class TestSecurity:
         assert decode_access_token("") is None
 
     def test_decode_wrong_type_token(self):
-        token = create_access_token({"sub": "user-123", "type": "password_reset"})
-        payload = decode_access_token(token)
-        assert payload is not None
-        payload = decode_access_token(token.replace("password_reset", "access"))
-        if payload and payload.get("type") != "access":
-            payload = None
-        # Re-create with correct type to verify
+        from datetime import datetime, timedelta, timezone
+
+        from jose import jwt as jose_jwt
+
+        from app.config import settings
+
+        non_access = jose_jwt.encode(
+            {
+                "sub": "user-123",
+                "type": "password_reset",
+                "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
+                "iat": datetime.now(timezone.utc),
+            },
+            settings.JWT_SECRET_KEY,
+            algorithm=settings.JWT_ALGORITHM,
+        )
+        assert decode_access_token(non_access) is None
         correct = create_access_token({"sub": "user-123"})
         assert decode_access_token(correct) is not None
 

@@ -55,9 +55,10 @@ export default function Register() {
     try {
       await register({ full_name: fullName, email, password });
       navigate("/", { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
       const message =
-        err?.response?.data?.detail || "Something went wrong. Please try again.";
+        axiosErr?.response?.data?.detail || "Something went wrong. Please try again.";
       setErrors({ general: message });
     } finally {
       setIsSubmitting(false);

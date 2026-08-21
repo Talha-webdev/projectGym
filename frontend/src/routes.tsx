@@ -14,6 +14,9 @@ const Login = lazy(() => import("@/pages/Login"));
 const Register = lazy(() => import("@/pages/Register"));
 const Profile = lazy(() => import("@/pages/Profile"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const VerifyEmail = lazy(() => import("@/pages/VerifyEmail"));
 const MembershipSuccess = lazy(() => import("@/pages/MembershipSuccess"));
 const MembershipCancel = lazy(() => import("@/pages/MembershipCancel"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
@@ -47,6 +50,9 @@ export const publicRoutes: RouteConfig[] = [
   { path: "/contact", element: Contact },
   { path: "/login", element: Login },
   { path: "/register", element: Register },
+  { path: "/forgot-password", element: ForgotPassword },
+  { path: "/reset-password", element: ResetPassword },
+  { path: "/verify-email", element: VerifyEmail },
   { path: "/membership/cancel", element: MembershipCancel },
 ];
 

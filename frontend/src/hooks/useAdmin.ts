@@ -1,7 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { AxiosProgressEvent } from "axios";
 import { adminApi } from "@/services/adminApi";
 import type { DashboardData, AdminUser, AdminPayment, AdminComment, MembershipActionData, SiteSettings } from "@/types/admin";
 import type { PaginatedResponse } from "@/types/api";
+
+interface UploadPayload {
+  formData: FormData;
+  onUploadProgress?: (e: AxiosProgressEvent) => void;
+}
 
 export function useAdminDashboard() {
   return useQuery<DashboardData>({
@@ -212,6 +218,50 @@ export function useDeleteGallery() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gallery"] });
+    },
+  });
+}
+
+export function useUploadVideo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ formData, onUploadProgress }: UploadPayload) => {
+      const response = await adminApi.uploadVideo(formData, onUploadProgress);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+    },
+  });
+}
+
+export function useUploadGallery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ formData, onUploadProgress }: UploadPayload) => {
+      const response = await adminApi.uploadGallery(formData, onUploadProgress);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gallery"] });
+    },
+  });
+}
+
+export function useUploadBlogCover() {
+  return useMutation({
+    mutationFn: async ({ formData, onUploadProgress }: UploadPayload) => {
+      const response = await adminApi.uploadBlogCover(formData, onUploadProgress);
+      return response.data;
+    },
+  });
+}
+
+export function useUploadThumbnail() {
+  return useMutation({
+    mutationFn: async ({ formData, onUploadProgress }: UploadPayload) => {
+      const response = await adminApi.uploadThumbnail(formData, onUploadProgress);
+      return response.data;
     },
   });
 }

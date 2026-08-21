@@ -5,6 +5,7 @@ from app.models.video import Video
 from app.models.category import Category
 from app.utils.pagination import PaginationParams, paginate
 from app.schemas.video import VideoResponse
+from app.services.cloudinary_service import destroy_asset, parse_public_id
 
 
 class VideoService:
@@ -86,8 +87,13 @@ class VideoService:
             return None
         update_data = request.model_dump(exclude_unset=True)
         cat_ids = update_data.pop("category_ids", None)
+        old_thumbnail = video.thumbnail_url
         for key, value in update_data.items():
             setattr(video, key, value)
+        if "thumbnail_url" in update_data and update_data["thumbnail_url"] != old_thumbnail:
+            old_pid = parse_public_id(old_thumbnail)
+            if old_pid:
+                await destroy_asset(old_pid, resource_type="image")
         if cat_ids is not None:
             from sqlalchemy import select as sel
             cats = await self.db.execute(
@@ -102,6 +108,12 @@ class VideoService:
         video = await self.get_by_slug(slug)
         if not video:
             return False
+        if video.cloudinary_public_id:
+            await destroy_asset(video.cloudinary_public_id, resource_type="video")
+        if video.thumbnail_url:
+            thumb_pid = parse_public_id(video.thumbnail_url)
+            if thumb_pid:
+                await destroy_asset(thumb_pid, resource_type="image")
         await self.db.delete(video)
         await self.db.commit()
         return True

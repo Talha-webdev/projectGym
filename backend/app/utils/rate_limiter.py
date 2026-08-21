@@ -4,6 +4,21 @@ from fastapi import HTTPException, Request, status
 
 
 class InMemoryRateLimiter:
+    """
+    In-memory rate limiter using sliding window counters.
+
+    LIMITATIONS (important for production):
+    - State is lost on server restart — all buckets reset.
+    - Not shared across multiple workers or processes (e.g., gunicorn with
+      multiple workers, Kubernetes pods). Each worker has its own counters,
+      so the effective limit is multiplied by the number of workers.
+    - Memory grows linearly with unique keys; expired entries are cleaned up
+      lazily on access, not proactively.
+
+    For multi-worker or stateless deployments, replace this with a
+    Redis-backed or database-backed rate limiter.
+    """
+
     def __init__(self):
         self._buckets: dict[str, list[float]] = defaultdict(list)
 

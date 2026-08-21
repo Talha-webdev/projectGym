@@ -25,7 +25,7 @@ export function CommentSection({ videoId, blogId }: CommentSectionProps) {
   const updateMutation = useUpdateComment();
   const deleteMutation = useDeleteComment();
 
-  const comments = data?.items || [];
+  const comments = useMemo(() => data?.items || [], [data?.items]);
 
   const totalComments = useMemo(() => {
     const topLevel = comments.filter((c) => !c.parent_id).length;

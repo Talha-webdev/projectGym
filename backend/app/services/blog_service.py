@@ -5,6 +5,7 @@ from app.models.blog import Blog
 from app.models.tag import Tag
 from app.utils.pagination import PaginationParams, paginate
 from app.schemas.blog import BlogResponse, BlogDetailResponse
+from app.services.cloudinary_service import destroy_asset, parse_public_id
 from datetime import datetime, timezone
 
 
@@ -85,8 +86,13 @@ class BlogService:
         update_data = request.model_dump(exclude_unset=True)
         tag_ids = update_data.pop("tag_ids", None)
         published = update_data.pop("published", None)
+        old_cover_url = blog.cover_image_url
         for key, value in update_data.items():
             setattr(blog, key, value)
+        if "cover_image_url" in update_data and update_data["cover_image_url"] != old_cover_url:
+            old_pid = parse_public_id(old_cover_url)
+            if old_pid:
+                await destroy_asset(old_pid, resource_type="image")
         if published is not None:
             blog.published_at = datetime.now(timezone.utc) if published else None
         if tag_ids is not None:
@@ -100,6 +106,10 @@ class BlogService:
         blog = await self.get_by_slug(slug)
         if not blog:
             return False
+        if blog.cover_image_url:
+            cover_pid = parse_public_id(blog.cover_image_url)
+            if cover_pid:
+                await destroy_asset(cover_pid, resource_type="image")
         await self.db.delete(blog)
         await self.db.commit()
         return True

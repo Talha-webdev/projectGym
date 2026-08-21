@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.gallery import Gallery
 from app.utils.pagination import PaginationParams, paginate
 from app.schemas.gallery import GalleryResponse
+from app.services.cloudinary_service import destroy_asset
 
 
 class GalleryService:
@@ -72,6 +73,8 @@ class GalleryService:
         gallery = result.scalar_one_or_none()
         if not gallery:
             return False
+        if gallery.cloudinary_public_id:
+            await destroy_asset(gallery.cloudinary_public_id, resource_type="image")
         await self.db.delete(gallery)
         await self.db.commit()
         return True

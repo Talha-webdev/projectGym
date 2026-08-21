@@ -142,6 +142,14 @@ export const Navbar = memo(function Navbar() {
                   <Link to="/dashboard" onClick={() => setIsOpen(false)} className="py-2 text-sm font-medium text-gym-text-secondary">
                     Dashboard
                   </Link>
+                  <Link to="/profile" onClick={() => setIsOpen(false)} className="py-2 text-sm font-medium text-gym-text-secondary">
+                    Profile
+                  </Link>
+                  {isAdmin && (
+                    <Link to="/admin" onClick={() => setIsOpen(false)} className="py-2 text-sm font-medium text-gym-text-secondary">
+                      Admin
+                    </Link>
+                  )}
                   <button onClick={() => { logout(); setIsOpen(false); }} className="py-2 text-left text-sm font-medium text-gym-error">
                     Logout
                   </button>

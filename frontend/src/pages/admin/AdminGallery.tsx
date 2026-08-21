@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Plus, Image, Trash2, Edit3 } from "lucide-react";
+import { Plus, Image, Trash2, Edit3, Upload } from "lucide-react";
 import { useGallery } from "@/hooks/useGallery";
-import { useCreateGallery, useUpdateGallery, useDeleteGallery } from "@/hooks/useAdmin";
+import { useUpdateGallery, useDeleteGallery, useUploadGallery } from "@/hooks/useAdmin";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -10,19 +10,23 @@ import type { GalleryItem } from "@/types/gallery";
 
 interface GalleryForm {
   title: string;
-  cloudinary_public_id: string;
-  cloudinary_url: string;
+  imageFile: File | null;
   category: string;
   sort_order: string;
 }
 
 const emptyForm: GalleryForm = {
   title: "",
-  cloudinary_public_id: "",
-  cloudinary_url: "",
+  imageFile: null,
   category: "",
   sort_order: "0",
 };
+
+function formatFileSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} B`;
+}
 
 export default function AdminGallery() {
   const [page, setPage] = useState(1);
@@ -30,9 +34,11 @@ export default function AdminGallery() {
   const [editingItem, setEditingItem] = useState<GalleryItem | null>(null);
   const [form, setForm] = useState<GalleryForm>(emptyForm);
   const [formError, setFormError] = useState("");
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const { data, isLoading, error } = useGallery({ page, per_page: 12 });
-  const createMutation = useCreateGallery();
+  const createMutation = useUploadGallery();
   const updateMutation = useUpdateGallery();
   const deleteMutation = useDeleteGallery();
 
@@ -40,6 +46,9 @@ export default function AdminGallery() {
     setEditingItem(null);
     setForm(emptyForm);
     setFormError("");
+    setUploadProgress(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
     setModalOpen(true);
   };
 
@@ -47,13 +56,27 @@ export default function AdminGallery() {
     setEditingItem(item);
     setForm({
       title: item.title || "",
-      cloudinary_public_id: "",
-      cloudinary_url: item.cloudinary_url,
+      imageFile: null,
       category: item.category || "",
       sort_order: item.sort_order.toString(),
     });
     setFormError("");
+    setUploadProgress(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
     setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+  };
+
+  const handleImageChange = (file: File | null) => {
+    setForm((f) => ({ ...f, imageFile: file }));
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(file ? URL.createObjectURL(file) : null);
   };
 
   const handleDelete = async (item: GalleryItem) => {
@@ -67,32 +90,48 @@ export default function AdminGallery() {
 
   const handleSubmit = async () => {
     setFormError("");
-    if (!editingItem && !form.cloudinary_url.trim()) { setFormError("Cloudinary URL is required"); return; }
+    setUploadProgress(null);
 
-    const payload: Record<string, unknown> = {
-      title: form.title.trim() || null,
-      cloudinary_url: form.cloudinary_url.trim(),
-      category: form.category.trim() || null,
-      sort_order: parseInt(form.sort_order, 10) || 0,
-    };
-    if (!editingItem) {
-      if (!form.cloudinary_public_id.trim()) { setFormError("Cloudinary public ID is required"); return; }
-      payload.cloudinary_public_id = form.cloudinary_public_id.trim();
+    if (editingItem) {
+      const payload: Record<string, unknown> = {
+        title: form.title.trim() || null,
+        category: form.category.trim() || null,
+        sort_order: parseInt(form.sort_order, 10) || 0,
+      };
+      try {
+        await updateMutation.mutateAsync({ id: editingItem.id, data: payload });
+        setModalOpen(false);
+      } catch {
+        setFormError("Failed to save image. Check your input and try again.");
+      }
+      return;
     }
 
+    if (!form.imageFile) { setFormError("Please select an image file"); return; }
+
+    const fd = new FormData();
+    fd.append("file", form.imageFile);
+    if (form.title.trim()) fd.append("title", form.title.trim());
+    if (form.category.trim()) fd.append("category", form.category.trim());
+    fd.append("sort_order", String(parseInt(form.sort_order, 10) || 0));
+
     try {
-      if (editingItem) {
-        await updateMutation.mutateAsync({ id: editingItem.id, data: payload });
-      } else {
-        await createMutation.mutateAsync(payload);
-      }
+      await createMutation.mutateAsync({
+        formData: fd,
+        onUploadProgress: (e) => {
+          if (e.total) setUploadProgress(Math.round((e.loaded / e.total) * 100));
+        },
+      });
       setModalOpen(false);
     } catch {
-      setFormError("Failed to save image. Check your input and try again.");
+      setFormError("Failed to upload image. Check the file type/size and try again.");
+    } finally {
+      setUploadProgress(null);
     }
   };
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
+  const currentPreview = imagePreview || editingItem?.cloudinary_url || null;
 
   return (
     <div>
@@ -176,10 +215,21 @@ export default function AdminGallery() {
         </div>
       )}
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingItem ? "Edit Image" : "Upload Image"}>
+      <Modal isOpen={modalOpen} onClose={closeModal} title={editingItem ? "Edit Image" : "Upload Image"}>
         <div className="space-y-4">
           {formError && (
             <div className="rounded-lg border border-gym-error/30 bg-gym-error/5 p-3 text-sm text-gym-error">{formError}</div>
+          )}
+          {uploadProgress !== null && (
+            <div>
+              <div className="mb-1 flex items-center justify-between text-xs text-gym-text-secondary">
+                <span>Uploading…</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-gym-elevated">
+                <div className="h-full rounded-full bg-gym-gold transition-all" style={{ width: `${uploadProgress}%` }} />
+              </div>
+            </div>
           )}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Title</label>
@@ -187,18 +237,37 @@ export default function AdminGallery() {
               className="w-full rounded-lg border border-gym-border-light bg-gym-surface px-4 py-2.5 text-sm text-gym-text-primary outline-none focus:border-gym-gold focus:ring-1 focus:ring-gym-gold" />
           </div>
           {!editingItem && (
-            <>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Cloudinary Public ID *</label>
-                <input type="text" value={form.cloudinary_public_id} onChange={(e) => setForm((f) => ({ ...f, cloudinary_public_id: e.target.value }))}
-                  className="w-full rounded-lg border border-gym-border-light bg-gym-surface px-4 py-2.5 text-sm text-gym-text-primary outline-none focus:border-gym-gold focus:ring-1 focus:ring-gym-gold" />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Cloudinary URL *</label>
-                <input type="url" value={form.cloudinary_url} onChange={(e) => setForm((f) => ({ ...f, cloudinary_url: e.target.value }))}
-                  className="w-full rounded-lg border border-gym-border-light bg-gym-surface px-4 py-2.5 text-sm text-gym-text-primary outline-none focus:border-gym-gold focus:ring-1 focus:ring-gym-gold" />
-              </div>
-            </>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Image File *</label>
+              {imagePreview && (
+                <div className="mb-2 overflow-hidden rounded-lg border border-gym-border-light">
+                  <img src={imagePreview} alt="Image preview" className="aspect-[4/3] w-full object-cover" />
+                </div>
+              )}
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-gym-border-light bg-gym-surface px-4 py-3 text-sm text-gym-text-secondary transition-colors hover:border-gym-gold">
+                <Upload className="h-5 w-5 text-gym-text-muted" />
+                <span className="flex-1">
+                  {form.imageFile ? (
+                    <span className="text-gym-text-primary">
+                      {form.imageFile.name} <span className="text-gym-text-muted">({formatFileSize(form.imageFile.size)})</span>
+                    </span>
+                  ) : (
+                    "Select an image (JPEG, PNG, WebP, GIF)"
+                  )}
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/avif,.jpg,.jpeg,.png,.gif,.webp,.avif"
+                  className="sr-only"
+                  onChange={(e) => handleImageChange(e.target.files?.[0] || null)}
+                />
+              </label>
+            </div>
+          )}
+          {editingItem && currentPreview && (
+            <div className="overflow-hidden rounded-lg border border-gym-border-light">
+              <img src={currentPreview} alt="Current image" className="aspect-[4/3] w-full object-cover" />
+            </div>
           )}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Category</label>
@@ -211,7 +280,7 @@ export default function AdminGallery() {
               className="w-full rounded-lg border border-gym-border-light bg-gym-surface px-4 py-2.5 text-sm text-gym-text-primary outline-none focus:border-gym-gold focus:ring-1 focus:ring-gym-gold" />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={closeModal}>Cancel</Button>
             <Button onClick={handleSubmit} isLoading={isSaving}>
               {editingItem ? "Update Image" : "Upload Image"}
             </Button>

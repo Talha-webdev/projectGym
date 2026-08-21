@@ -41,6 +41,8 @@ class Settings(BaseSettings):
 
     RESEND_API_KEY: str = ""
 
+    ADMIN_EMAIL: str = ""
+
     def check_required_settings(self) -> None:
         critical = []
         if not self.JWT_SECRET_KEY:
@@ -74,6 +76,11 @@ class Settings(BaseSettings):
             logger = logging.getLogger(self.APP_NAME)
             for msg in critical:
                 logger.warning(msg)
+            if self.APP_ENV == "production":
+                raise SystemExit(
+                    "FATAL: Missing required production configuration. "
+                    + "; ".join(critical)
+                )
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Plus, FileText, Edit3, Trash2, Search } from "lucide-react";
+import { Plus, FileText, Edit3, Trash2, Search, Upload } from "lucide-react";
 import { useBlogs, useTags } from "@/hooks/useBlogs";
-import { useCreateBlog, useUpdateBlog, useDeleteBlog } from "@/hooks/useAdmin";
+import { useCreateBlog, useUpdateBlog, useDeleteBlog, useUploadBlogCover } from "@/hooks/useAdmin";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -14,6 +14,7 @@ interface BlogForm {
   title: string;
   content: string;
   excerpt: string;
+  cover_image_file: File | null;
   cover_image_url: string;
   meta_description: string;
   is_premium: boolean;
@@ -25,12 +26,19 @@ const emptyForm: BlogForm = {
   title: "",
   content: "",
   excerpt: "",
+  cover_image_file: null,
   cover_image_url: "",
   meta_description: "",
   is_premium: false,
   published: false,
   tag_ids: [],
 };
+
+function formatFileSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} B`;
+}
 
 export default function AdminBlogs() {
   const [search, setSearch] = useState("");
@@ -39,6 +47,8 @@ export default function AdminBlogs() {
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
   const [form, setForm] = useState<BlogForm>(emptyForm);
   const [formError, setFormError] = useState("");
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
   const params: Record<string, string | number> = { page, per_page: 10 };
   if (search) params.search = search;
@@ -47,11 +57,15 @@ export default function AdminBlogs() {
   const createMutation = useCreateBlog();
   const updateMutation = useUpdateBlog();
   const deleteMutation = useDeleteBlog();
+  const coverUploadMutation = useUploadBlogCover();
 
   const openCreate = () => {
     setEditingBlog(null);
     setForm(emptyForm);
     setFormError("");
+    setUploadProgress(null);
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverPreview(null);
     setModalOpen(true);
   };
 
@@ -61,6 +75,7 @@ export default function AdminBlogs() {
       title: blog.title,
       content: "",
       excerpt: blog.excerpt || "",
+      cover_image_file: null,
       cover_image_url: blog.cover_image_url || "",
       meta_description: "",
       is_premium: blog.is_premium,
@@ -68,7 +83,44 @@ export default function AdminBlogs() {
       tag_ids: [],
     });
     setFormError("");
+    setUploadProgress(null);
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverPreview(null);
     setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverPreview(null);
+  };
+
+  const handleCoverChange = async (file: File | null) => {
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    if (!file) {
+      setCoverPreview(null);
+      setForm((f) => ({ ...f, cover_image_file: null, cover_image_url: "" }));
+      return;
+    }
+    setCoverPreview(URL.createObjectURL(file));
+    setForm((f) => ({ ...f, cover_image_file: file, cover_image_url: "" }));
+    setUploadProgress(0);
+    setFormError("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const result = await coverUploadMutation.mutateAsync({
+        formData: fd,
+        onUploadProgress: (e) => {
+          if (e.total) setUploadProgress(Math.round((e.loaded / e.total) * 100));
+        },
+      });
+      setForm((f) => ({ ...f, cover_image_url: result.cover_image_url }));
+    } catch {
+      setFormError("Failed to upload cover image. Check the file type/size and try again.");
+    } finally {
+      setUploadProgress(null);
+    }
   };
 
   const handleDelete = async (blog: Blog) => {
@@ -108,7 +160,8 @@ export default function AdminBlogs() {
     }
   };
 
-  const isSaving = createMutation.isPending || updateMutation.isPending;
+  const isSaving = createMutation.isPending || updateMutation.isPending || coverUploadMutation.isPending;
+  const currentCover = coverPreview || editingBlog?.cover_image_url || null;
 
   return (
     <div>
@@ -229,10 +282,21 @@ export default function AdminBlogs() {
         </div>
       )}
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingBlog ? "Edit Blog" : "New Blog"}>
+      <Modal isOpen={modalOpen} onClose={closeModal} title={editingBlog ? "Edit Blog" : "New Blog"}>
         <div className="space-y-4">
           {formError && (
             <div className="rounded-lg border border-gym-error/30 bg-gym-error/5 p-3 text-sm text-gym-error">{formError}</div>
+          )}
+          {uploadProgress !== null && (
+            <div>
+              <div className="mb-1 flex items-center justify-between text-xs text-gym-text-secondary">
+                <span>Uploading cover…</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-gym-elevated">
+                <div className="h-full rounded-full bg-gym-gold transition-all" style={{ width: `${uploadProgress}%` }} />
+              </div>
+            </div>
           )}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Title *</label>
@@ -250,9 +314,33 @@ export default function AdminBlogs() {
               className="w-full rounded-lg border border-gym-border-light bg-gym-surface px-4 py-2.5 text-sm text-gym-text-primary outline-none focus:border-gym-gold focus:ring-1 focus:ring-gym-gold" />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Cover Image URL</label>
-            <input type="url" value={form.cover_image_url} onChange={(e) => setForm((f) => ({ ...f, cover_image_url: e.target.value }))}
-              className="w-full rounded-lg border border-gym-border-light bg-gym-surface px-4 py-2.5 text-sm text-gym-text-primary outline-none focus:border-gym-gold focus:ring-1 focus:ring-gym-gold" />
+            <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Cover Image</label>
+            {currentCover && (
+              <div className="mb-2 overflow-hidden rounded-lg border border-gym-border-light">
+                <img src={currentCover} alt="Cover preview" className="h-32 w-full object-cover" />
+              </div>
+            )}
+            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-gym-border-light bg-gym-surface px-4 py-3 text-sm text-gym-text-secondary transition-colors hover:border-gym-gold">
+              <Upload className="h-5 w-5 text-gym-text-muted" />
+              <span className="flex-1">
+                {form.cover_image_file ? (
+                  <span className="text-gym-text-primary">
+                    {form.cover_image_file.name} <span className="text-gym-text-muted">({formatFileSize(form.cover_image_file.size)})</span>
+                  </span>
+                ) : (
+                  "Select a cover image (JPEG, PNG, WebP)"
+                )}
+              </span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp,image/avif,.jpg,.jpeg,.png,.gif,.webp,.avif"
+                className="sr-only"
+                onChange={(e) => handleCoverChange(e.target.files?.[0] || null)}
+              />
+            </label>
+            {form.cover_image_url && (
+              <p className="mt-1 truncate text-xs text-gym-text-muted">{form.cover_image_url}</p>
+            )}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Meta Description</label>
@@ -281,7 +369,7 @@ export default function AdminBlogs() {
             </label>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={closeModal}>Cancel</Button>
             <Button onClick={handleSubmit} isLoading={isSaving}>
               {editingBlog ? "Update Blog" : "Create Blog"}
             </Button>

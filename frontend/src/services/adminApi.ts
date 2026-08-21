@@ -1,4 +1,5 @@
 import api from "@/services/api";
+import type { AxiosProgressEvent } from "axios";
 import type { PaginatedResponse } from "@/types/api";
 import type { Video } from "@/types/video";
 import type { BlogDetail } from "@/types/blog";
@@ -66,4 +67,36 @@ export const adminApi = {
 
   deleteGallery: (id: string) =>
     api.delete(`/gallery/${id}`),
+
+  uploadVideo: (
+    formData: FormData,
+    onUploadProgress?: (e: AxiosProgressEvent) => void
+  ) =>
+    api.post<Video>("/uploads/video", formData, { onUploadProgress }),
+
+  uploadGallery: (
+    formData: FormData,
+    onUploadProgress?: (e: AxiosProgressEvent) => void
+  ) =>
+    api.post<GalleryItem>("/uploads/gallery", formData, { onUploadProgress }),
+
+  uploadBlogCover: (
+    formData: FormData,
+    onUploadProgress?: (e: AxiosProgressEvent) => void
+  ) =>
+    api.post<{ cover_image_url: string; public_id: string }>(
+      "/uploads/blog-cover",
+      formData,
+      { onUploadProgress }
+    ),
+
+  uploadThumbnail: (
+    formData: FormData,
+    onUploadProgress?: (e: AxiosProgressEvent) => void
+  ) =>
+    api.post<{ thumbnail_url: string; public_id: string }>(
+      "/uploads/thumbnail",
+      formData,
+      { onUploadProgress }
+    ),
 };

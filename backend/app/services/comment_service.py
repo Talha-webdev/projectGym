@@ -140,9 +140,6 @@ class CommentService:
         if comment.user_id != user_uuid and not is_admin:
             raise PermissionError("You do not have permission to edit this comment.")
 
-        if not is_admin and comment.user_id != user_uuid:
-            raise PermissionError("You do not have permission to edit this comment.")
-
         comment.content = content
         await self.db.commit()
         await self.db.refresh(comment)

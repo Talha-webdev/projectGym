@@ -41,9 +41,10 @@ export default function Login() {
     try {
       await login({ email, password });
       navigate(from, { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
       const message =
-        err?.response?.data?.detail || "Something went wrong. Please try again.";
+        axiosErr?.response?.data?.detail || "Something went wrong. Please try again.";
       setErrors({ general: message });
     } finally {
       setIsSubmitting(false);
@@ -111,7 +112,7 @@ export default function Login() {
                 autoComplete="current-password"
               />
               <div className="mt-1.5 text-right">
-                <span className="text-xs text-gym-text-muted opacity-40">Forgot password?</span>
+                <Link to="/forgot-password" className="text-xs text-gym-text-muted transition-colors hover:text-gym-gold">Forgot password?</Link>
               </div>
             </div>
 

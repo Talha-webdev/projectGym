@@ -1,226 +1,198 @@
-import { useParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Play, Eye, Clock, Lock, ArrowLeft } from "lucide-react";
+import {
+  Eye,
+  Clock,
+  ArrowLeft,
+  Play,
+  Crown,
+  Lock,
+  AlertCircle,
+} from "lucide-react";
 import { SEOHead } from "@/components/common/SEOHead";
-import { useVideo, useVideos } from "@/hooks/useVideos";
+import { useVideo } from "@/hooks/useVideos";
+import { useMembership } from "@/hooks/useMembership";
 import { useAuth } from "@/store/AuthContext";
-import { videoObjectSchema, canonicalUrl } from "@/utils/seo";
-import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { lazy, Suspense } from "react";
-const CommentSection = lazy(() => import("@/components/comments/CommentSection").then(m => ({ default: m.CommentSection })));
-import { formatDuration, formatDate } from "@/utils/formatters";
+import { formatDate, formatDuration, formatViewCount } from "@/utils/formatters";
 import { fadeInUp } from "@/utils/animations";
 
 export default function VideoDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const { data: video, isLoading, error } = useVideo(slug ?? "");
+  const { data: membership } = useMembership();
   const { isAuthenticated } = useAuth();
-  const { data: video, isLoading } = useVideo(slug || "");
-  const { data: relatedData } = useVideos({ per_page: 4 });
+  const [hasPremium, setHasPremium] = useState(false);
+
+  useEffect(() => {
+    if (membership?.is_active) setHasPremium(true);
+  }, [membership]);
 
   if (isLoading) {
     return (
       <div className="section-padding">
         <div className="content-max-width px-4">
-          <Skeleton variant="rectangular" className="aspect-video w-full rounded-2xl" />
-          <div className="mt-6 space-y-3">
-            <Skeleton className="h-8 w-2/3" />
-            <Skeleton className="h-4 w-1/3" />
-            <Skeleton className="h-20 w-full" />
-          </div>
+          <Skeleton className="h-8 w-48 mb-4" />
+          <Skeleton className="aspect-video w-full rounded-xl mb-6" />
+          <Skeleton className="h-6 w-2/3 mb-2" />
+          <Skeleton className="h-4 w-full mb-1" />
+          <Skeleton className="h-4 w-3/4" />
         </div>
       </div>
     );
   }
 
-  if (!video) {
+  if (error || !video) {
     return (
-      <div className="section-padding text-center">
-        <div className="content-max-width px-4">
-          <h1 className="font-heading text-2xl font-bold text-gym-text-primary">Video not found</h1>
-          <p className="mt-2 text-gym-text-secondary">The video you're looking for doesn't exist.</p>
-          <Link to="/videos" className="mt-6 inline-block text-gym-gold hover:underline">
-            &larr; Back to Videos
+      <div className="section-padding flex min-h-[50vh] items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="mx-auto h-12 w-12 text-gym-error" />
+          <h1 className="mt-4 font-heading text-2xl font-bold text-gym-text-primary">Video Not Found</h1>
+          <p className="mt-2 text-gym-text-secondary">The video you're looking for doesn't exist or has been removed.</p>
+          <Link to="/videos">
+            <Button className="mt-6"><ArrowLeft className="h-4 w-4" /> Back to Videos</Button>
           </Link>
         </div>
       </div>
     );
   }
 
-  const isPremium = video.is_premium;
-  const isLocked = isPremium && !video.cloudinary_url;
-  const related = relatedData?.items?.filter((v) => v.slug !== slug).slice(0, 3) || [];
-
-  const videoJsonLd = videoObjectSchema({
-    title: video.title,
-    description: video.description,
-    slug: video.slug,
-    thumbnailUrl: video.thumbnail_url,
-    uploadDate: video.created_at,
-    duration: video.duration,
-  });
+  const canPlay = !video.is_premium || hasPremium;
+  const videoUrl = canPlay ? video.cloudinary_url : null;
 
   return (
     <>
       <SEOHead
         title={video.title}
         description={video.description || `Watch ${video.title} on Project GYM`}
-        ogImage={video.thumbnail_url || undefined}
-        ogUrl={canonicalUrl(`/videos/${video.slug}`)}
-        ogType="video.other"
-        canonical={canonicalUrl(`/videos/${video.slug}`)}
-        jsonLd={videoJsonLd}
+        ogImage={video.thumbnail_url ?? undefined}
+        canonical={`/videos/${video.slug}`}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "VideoObject",
+          name: video.title,
+          description: video.description ?? undefined,
+          thumbnailUrl: video.thumbnail_url ?? undefined,
+          duration: video.duration ? `PT${video.duration}S` : undefined,
+          uploadDate: video.created_at,
+        }}
       />
-      <div className="pt-24">
-      <div className="content-max-width px-4 py-8">
-        <Link
-          to="/videos"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-gym-text-muted transition-colors hover:text-gym-gold"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to Videos
-        </Link>
+      <div className="section-padding">
+        <div className="content-max-width px-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+            <Link to="/videos" className="mb-6 inline-flex items-center gap-1.5 text-sm text-gym-text-muted transition-colors hover:text-gym-gold">
+              <ArrowLeft className="h-4 w-4" /> All Videos
+            </Link>
 
-        <div className="grid gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-              <div className="relative aspect-video overflow-hidden rounded-2xl bg-gym-elevated">
-                {isLocked ? (
-                  <div className="flex h-full flex-col items-center justify-center gap-4 bg-gradient-to-b from-gym-elevated to-gym-surface">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gym-gold/10">
-                      <Lock className="h-10 w-10 text-gym-gold" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-gym-text-primary">Premium Content</p>
-                      <p className="mt-1 text-sm text-gym-text-secondary">
-                        {isAuthenticated
-                          ? "Upgrade your membership to access this video."
-                          : "Join Project GYM to unlock this workout."}
-                      </p>
-                    </div>
-                    <Link to={isAuthenticated ? "/pricing" : "/register"}>
-                      <Button>
-                        {isAuthenticated ? "View Pricing" : "Join Now"}
-                      </Button>
-                    </Link>
-                  </div>
-                ) : video.cloudinary_url ? (
-                  <div className="flex h-full items-center justify-center bg-gym-elevated">
-                    <div className="text-center">
-                      <Play className="mx-auto h-16 w-16 text-gym-gold/50" />
-                      <p className="mt-2 text-sm text-gym-text-muted">Video Player</p>
-                    </div>
-                  </div>
+            <div className="grid gap-8 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                {canPlay && videoUrl ? (
+                  <motion.div
+                    variants={fadeInUp}
+                    initial="hidden"
+                    animate="visible"
+                    className="relative overflow-hidden rounded-xl border border-gym-border-light bg-black"
+                  >
+                    <video
+                      src={videoUrl}
+                      controls
+                      preload="metadata"
+                      className="aspect-video w-full"
+                      poster={video.thumbnail_url ?? undefined}
+                    />
+                  </motion.div>
                 ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <Play className="h-16 w-16 text-gym-text-muted" />
-                  </div>
+                  <motion.div
+                    variants={fadeInUp}
+                    initial="hidden"
+                    animate="visible"
+                    className="relative aspect-video overflow-hidden rounded-xl border border-gym-border-light bg-gym-surface"
+                  >
+                    {video.thumbnail_url ? (
+                      <img
+                        src={video.thumbnail_url}
+                        alt={video.title}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-gym-elevated">
+                        <Play className="h-16 w-16 text-gym-text-muted" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
+                      <div className="rounded-full bg-gym-gold/20 p-4 mb-4">
+                        <Lock className="h-8 w-8 text-gym-gold" />
+                      </div>
+                      <h3 className="font-heading text-xl font-bold text-gym-text-primary">Premium Content</h3>
+                      <p className="mt-2 max-w-sm text-center text-sm text-gym-text-secondary">
+                        Subscribe to unlock this video and all other premium content.
+                      </p>
+                      {!isAuthenticated ? (
+                        <Link to="/register" className="mt-6">
+                          <Button><Crown className="mr-2 h-4 w-4" /> Join Now</Button>
+                        </Link>
+                      ) : (
+                        <Link to="/pricing" className="mt-6">
+                          <Button><Crown className="mr-2 h-4 w-4" /> Get Membership</Button>
+                        </Link>
+                      )}
+                    </div>
+                  </motion.div>
                 )}
               </div>
-            </motion.div>
 
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              animate="visible"
-              className="mt-6 space-y-4"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
+              <motion.div variants={fadeInUp} initial="hidden" animate="visible" transition={{ delay: 0.2 }} className="space-y-6">
                 <div>
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    {isPremium && <Badge variant="premium">Premium</Badge>}
-                    {video.category && (
-                      <span className="rounded-full bg-gym-surface px-3 py-0.5 text-xs text-gym-text-muted">
-                        {video.category}
-                      </span>
-                    )}
+                  <div className="flex items-center gap-2 mb-3">
+                    {video.category && <Badge variant="default">{video.category}</Badge>}
+                    {video.is_premium && <Badge variant="premium" className="gap-1"><Crown className="h-3 w-3" /> Premium</Badge>}
                   </div>
-                  <h1 className="font-heading text-2xl font-bold text-gym-text-primary">
-                    {video.title}
-                  </h1>
-                  <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gym-text-muted">
+                  <h1 className="font-heading text-2xl font-bold text-gym-text-primary leading-tight">{video.title}</h1>
+                  <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gym-text-secondary">
+                    <span className="flex items-center gap-1"><Eye className="h-4 w-4" /> {formatViewCount(video.view_count)} views</span>
                     {video.duration && (
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" /> {formatDuration(video.duration)}
-                      </span>
+                      <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> {formatDuration(video.duration)}</span>
                     )}
-                    <span className="flex items-center gap-1">
-                      <Eye className="h-4 w-4" /> {video.view_count} views
-                    </span>
                     <span>{formatDate(video.created_at)}</span>
                   </div>
                 </div>
-              </div>
 
-              {video.description && (
-                <div className="rounded-xl border border-gym-border-light bg-gym-surface p-5">
-                  <h3 className="mb-2 text-sm font-semibold text-gym-text-primary">Description</h3>
-                  <p className="text-sm leading-relaxed text-gym-text-secondary">
-                    {video.description}
-                  </p>
-                </div>
-              )}
-            </motion.div>
-          </div>
+                {video.description && (
+                  <Card hover={false} className="p-4">
+                    <p className="text-sm leading-relaxed text-gym-text-secondary whitespace-pre-line">{video.description}</p>
+                  </Card>
+                )}
 
-          <motion.div
-            variants={fadeInUp}
-            initial="hidden"
-            animate="visible"
-            className="space-y-4"
-          >
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-gym-text-muted">
-              Related Videos
-            </h3>
-            {related.map((rv) => (
-              <Link
-                key={rv.id}
-                to={`/videos/${rv.slug}`}
-                className="group flex gap-3 rounded-xl border border-gym-border-light bg-gym-surface p-3 transition-all hover:border-gym-gold/30"
-              >
-                <div className="relative aspect-video w-28 flex-shrink-0 overflow-hidden rounded-lg bg-gym-elevated">
-                  {rv.thumbnail_url ? (
-                    <img
-                      src={rv.thumbnail_url}
-                      alt={rv.title}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <Play className="h-6 w-6 text-gym-text-muted" />
+                <div className="rounded-xl bg-gym-elevated/50 p-4">
+                  <h3 className="mb-2 text-sm font-semibold text-gym-text-primary">About this video</h3>
+                  <div className="space-y-2 text-sm text-gym-text-secondary">
+                    {video.category && (
+                      <div className="flex justify-between">
+                        <span>Category</span>
+                        <span className="font-medium text-gym-text-primary">{video.category}</span>
+                      </div>
+                    )}
+                    {video.duration && (
+                      <div className="flex justify-between">
+                        <span>Duration</span>
+                        <span className="font-medium text-gym-text-primary">{formatDuration(video.duration)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span>Type</span>
+                      <span className="font-medium text-gym-text-primary">{video.is_premium ? "Premium" : "Free"}</span>
                     </div>
-                  )}
-                  {rv.is_premium && (
-                    <div className="absolute right-1 top-1">
-                      <Badge variant="premium">Premium</Badge>
-                    </div>
-                  )}
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-sm font-medium text-gym-text-primary transition-colors group-hover:text-gym-gold">
-                    {rv.title}
-                  </p>
-                  <p className="mt-1 text-xs text-gym-text-muted">
-                    {rv.category || "General"}
-                  </p>
-                </div>
-              </Link>
-            ))}
-            {related.length === 0 && (
-              <p className="text-sm text-gym-text-muted">No related videos.</p>
-            )}
+              </motion.div>
+            </div>
           </motion.div>
         </div>
-
-        <div className="content-max-width px-4">
-          <Suspense fallback={null}>
-            <CommentSection videoId={video.id} />
-          </Suspense>
-        </div>
       </div>
-    </div>
     </>
   );
 }
