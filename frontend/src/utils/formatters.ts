@@ -29,14 +29,6 @@ export function formatRelativeTime(date: string | Date): string {
   return formatDateShort(date);
 }
 
-export function formatCurrency(amount: number | string, currency = "USD"): string {
-  const num = typeof amount === "string" ? parseFloat(amount) : amount;
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-  }).format(num);
-}
-
 export function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);

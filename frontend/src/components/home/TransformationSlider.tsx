@@ -1,8 +1,12 @@
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export function TransformationSlider() {
   const [sliderPos, setSliderPos] = useState(50);
+  const { settings } = useSiteSettings();
+  const beforeImage = settings.before_image_url;
+  const afterImage = settings.after_image_url;
 
   const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -58,18 +62,41 @@ export function TransformationSlider() {
           aria-valuetext={`${sliderPos}% visible`}
         >
           <div className="aspect-video bg-gradient-to-br from-gym-elevated to-gym-surface">
-            <div className="flex h-full items-center justify-center">
-              <p className="text-gym-text-muted text-sm">After</p>
-            </div>
+            {afterImage ? (
+              <img
+                src={afterImage}
+                alt="After"
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-gym-text-muted text-sm">After</p>
+              </div>
+            )}
           </div>
           <div
             className="absolute inset-0 overflow-hidden"
             style={{ width: `${sliderPos}%` }}
           >
             <div className="aspect-video bg-gradient-to-br from-gym-gold/20 to-gym-gold/5">
-              <div className="flex h-full items-center justify-center">
-                <p className="text-gym-gold text-sm">Before</p>
-              </div>
+              {beforeImage ? (
+                <img
+                  src={beforeImage}
+                  alt="Before"
+                  className="h-full w-full object-cover"
+                  style={{ width: "100vw", maxWidth: "none" }}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-gym-gold text-sm">Before</p>
+                </div>
+              )}
             </div>
           </div>
           <div

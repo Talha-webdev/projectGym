@@ -6,52 +6,51 @@ import {
 import { SEOHead } from "@/components/common/SEOHead";
 import { fadeInUp, fadeInLeft, fadeInRight, staggerContainer } from "@/utils/animations";
 import { contactApi } from "@/services/contactApi";
-
-const contactInfo = [
-  {
-    icon: MessageCircle,
-    label: "WhatsApp",
-    value: "+1 (555) 123-4567",
-    href: "https://wa.me/15551234567",
-  },
-  {
-    icon: Mail,
-    label: "Email",
-    value: "coach@projectgym.com",
-    href: "mailto:coach@projectgym.com",
-  },
-  {
-    icon: PhoneCall,
-    label: "Phone",
-    value: "+1 (555) 123-4567",
-    href: "tel:+15551234567",
-  },
-];
-
-const socialLinks = [
-  {
-    icon: AtSign,
-    label: "Instagram",
-    value: "@projectgym",
-    href: "https://instagram.com/projectgym",
-  },
-  {
-    icon: Music2,
-    label: "TikTok",
-    value: "@projectgym",
-    href: "https://tiktok.com/@projectgym",
-  },
-  {
-    icon: Globe,
-    label: "Facebook",
-    value: "Project GYM",
-    href: "https://facebook.com/projectgym",
-  },
-];
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export default function Contact() {
+  const { settings } = useSiteSettings();
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  const whatsappNumber = settings.coach_whatsapp || "+1 (555) 123-4567";
+  const whatsappClean = whatsappNumber.replace(/[^\d+]/g, "");
+  const phoneValue = settings.coach_phone || "+1 (555) 123-4567";
+  const phoneClean = phoneValue.replace(/[^\d+]/g, "");
+  const emailValue = settings.coach_email || "coach@projectgym.com";
+
+  const contactInfo = [
+    {
+      icon: MessageCircle,
+      label: "WhatsApp",
+      value: whatsappNumber,
+      href: `https://wa.me/${whatsappClean.replace(/[^\d]/g, "")}`,
+    },
+    {
+      icon: Mail,
+      label: "Email",
+      value: emailValue,
+      href: `mailto:${emailValue}`,
+    },
+    {
+      icon: PhoneCall,
+      label: "Phone",
+      value: phoneValue,
+      href: `tel:${phoneClean}`,
+    },
+  ];
+
+  const socialLinks = [
+    ...(settings.social_instagram
+      ? [{ icon: AtSign, label: "Instagram", value: "@projectgym", href: settings.social_instagram }]
+      : []),
+    ...(settings.social_tiktok
+      ? [{ icon: Music2, label: "TikTok", value: "@projectgym", href: settings.social_tiktok }]
+      : []),
+    ...(settings.social_facebook
+      ? [{ icon: Globe, label: "Facebook", value: "LH Fitness", href: settings.social_facebook }]
+      : []),
+  ];
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -75,7 +74,7 @@ export default function Contact() {
       exit={{ opacity: 0 }}
     >
       <SEOHead
-        title="Contact - Project GYM"
+        title="Contact - LH Fitness"
         description="Get in touch with Coach. Reach out via WhatsApp, email, or social media. We'd love to hear from you."
         canonical="/contact"
       />
@@ -107,7 +106,7 @@ export default function Contact() {
               variants={fadeInUp}
               className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gym-text-secondary"
             >
-              Have a question about the program, membership, or just want to say hi?
+              Have a question about the program or just want to say hi?
               We'd love to hear from you. Reach out through any of the channels below.
             </motion.p>
           </motion.div>

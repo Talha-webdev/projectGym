@@ -4,6 +4,8 @@ import axios, {
 } from "axios";
 import type { AuthTokens } from "@/types/auth";
 
+const AUTH_SKIP_REFRESH_PATHS = ["/auth/login", "/auth/register", "/auth/forgot-password", "/auth/reset-password"];
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1",
   headers: {
@@ -58,7 +60,12 @@ api.interceptors.response.use(
       _retry?: boolean;
     };
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const requestUrl = originalRequest?.url || "";
+    const isAuthEndpoint = AUTH_SKIP_REFRESH_PATHS.some((path) =>
+      requestUrl.includes(path)
+    );
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
       const newToken = await refreshAccessToken();
 

@@ -5,7 +5,7 @@ from app.models.video import Video
 from app.models.category import Category
 from app.utils.pagination import PaginationParams, paginate
 from app.schemas.video import VideoResponse
-from app.services.cloudinary_service import destroy_asset, parse_public_id
+from app.services.cloudinary_service import destroy_asset, parse_public_id, ensure_video_playable
 
 
 class VideoService:
@@ -18,17 +18,12 @@ class VideoService:
         per_page: int = 12,
         category_slug: str | None = None,
         search: str | None = None,
-        premium_only: bool | None = None,
     ) -> dict:
         query = select(Video).options(selectinload(Video.categories))
         if category_slug:
             query = query.join(Video.categories).filter(Video.categories.any(slug=category_slug))
         if search:
             query = query.filter(Video.title.ilike(f"%{search}%"))
-        if premium_only is True:
-            query = query.filter(Video.is_premium == True)
-        elif premium_only is False:
-            query = query.filter(Video.is_premium == False)
 
         count_q = select(func.count()).select_from(query.subquery())
         total = (await self.db.execute(count_q)).scalar() or 0
@@ -53,7 +48,6 @@ class VideoService:
 
     async def create(self, request) -> VideoResponse:
         import uuid
-        from app.models.video import video_categories
         slug = request.title.lower().replace(" ", "-").replace("--", "-")
         slug = "".join(c for c in slug if c.isalnum() or c == "-")
         existing = await self.db.execute(select(Video).where(Video.slug == slug))
@@ -67,7 +61,6 @@ class VideoService:
             cloudinary_url=request.cloudinary_url,
             thumbnail_url=request.thumbnail_url,
             duration=request.duration,
-            is_premium=request.is_premium,
         )
         self.db.add(video)
         await self.db.flush()
@@ -77,8 +70,9 @@ class VideoService:
                 sel(Category).where(Category.id.in_(request.category_ids))
             )
             video.categories = cats.scalars().all()
+            await self.db.flush()
         await self.db.commit()
-        await self.db.refresh(video)
+        video = await self.get_by_slug(slug)
         return self._to_response(video)
 
     async def update(self, slug: str, request) -> VideoResponse | None:
@@ -120,5 +114,6 @@ class VideoService:
 
     def _to_response(self, video: Video) -> VideoResponse:
         resp = VideoResponse.model_validate(video)
+        resp.cloudinary_url = ensure_video_playable(resp.cloudinary_url)
         resp.category = video.categories[0].name if video.categories else None
         return resp

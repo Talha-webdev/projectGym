@@ -19,23 +19,22 @@ class BlogService:
         per_page: int = 12,
         tag_slug: str | None = None,
         search: str | None = None,
-        premium_only: bool | None = None,
+        include_drafts: bool = False,
     ) -> dict:
-        query = select(Blog).options(selectinload(Blog.tags)).where(Blog.published_at.isnot(None))
+        query = select(Blog).options(selectinload(Blog.tags))
+        if not include_drafts:
+            query = query.where(Blog.published_at.isnot(None))
         if tag_slug:
             query = query.join(Blog.tags).filter(Blog.tags.any(slug=tag_slug))
         if search:
             query = query.filter(Blog.title.ilike(f"%{search}%"))
-        if premium_only is True:
-            query = query.filter(Blog.is_premium == True)
-        elif premium_only is False:
-            query = query.filter(Blog.is_premium == False)
 
         count_q = select(func.count()).select_from(query.subquery())
         total = (await self.db.execute(count_q)).scalar() or 0
 
         params = PaginationParams(page, per_page)
-        query = query.order_by(Blog.published_at.desc()).offset(params.offset).limit(params.limit)
+        order = Blog.created_at.desc() if include_drafts else Blog.published_at.desc()
+        query = query.order_by(order).offset(params.offset).limit(params.limit)
         result = await self.db.execute(query)
         blogs = result.scalars().unique().all()
 
@@ -65,7 +64,6 @@ class BlogService:
             content=request.content,
             excerpt=request.excerpt,
             cover_image_url=request.cover_image_url,
-            is_premium=request.is_premium,
             meta_description=request.meta_description,
             read_time_minutes=max(1, len(request.content.split()) // 200) if request.content else None,
             published_at=datetime.now(timezone.utc) if request.published else None,
@@ -76,7 +74,7 @@ class BlogService:
             tags_result = await self.db.execute(select(Tag).where(Tag.id.in_(request.tag_ids)))
             blog.tags = tags_result.scalars().all()
         await self.db.commit()
-        await self.db.refresh(blog)
+        await self.db.refresh(blog, ["tags"])
         return self._to_detail_response(blog)
 
     async def update(self, slug: str, request) -> BlogDetailResponse | None:
@@ -99,7 +97,7 @@ class BlogService:
             tags_result = await self.db.execute(select(Tag).where(Tag.id.in_(tag_ids)))
             blog.tags = tags_result.scalars().all()
         await self.db.commit()
-        await self.db.refresh(blog)
+        await self.db.refresh(blog, ["tags"])
         return self._to_detail_response(blog)
 
     async def delete(self, slug: str) -> bool:

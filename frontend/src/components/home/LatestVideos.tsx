@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Play, ArrowRight } from "lucide-react";
 import { useVideos } from "@/hooks/useVideos";
-import { Badge } from "@/components/ui/Badge";
 import { GridSkeleton } from "@/components/ui/Skeleton";
 import { formatDuration, formatViewCount, formatRelativeTime } from "@/utils/formatters";
 
@@ -68,11 +67,6 @@ export function LatestVideos() {
                           <Play className="h-6 w-6" />
                         </div>
                       </div>
-                      {video.is_premium && (
-                        <div className="absolute right-2 top-2">
-                          <Badge variant="premium">Premium</Badge>
-                        </div>
-                      )}
                       {video.duration && (
                         <div className="absolute bottom-2 left-2 rounded bg-black/70 px-2 py-0.5 text-xs text-white">
                           {formatDuration(video.duration)}

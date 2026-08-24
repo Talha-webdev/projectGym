@@ -1,4 +1,4 @@
-export const APP_NAME = "Project GYM";
+export const APP_NAME = "LH Fitness";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
 
@@ -11,7 +11,6 @@ export const ROUTES = {
   BLOGS: "/blogs",
   BLOG_DETAIL: (slug: string) => `/blogs/${slug}`,
   GALLERY: "/gallery",
-  PRICING: "/pricing",
   CONTACT: "/contact",
   LOGIN: "/login",
   REGISTER: "/register",
@@ -24,7 +23,6 @@ export const ROUTES = {
   ADMIN_GALLERY: "/admin/gallery",
   ADMIN_USERS: "/admin/users",
   ADMIN_COMMENTS: "/admin/comments",
-  ADMIN_PAYMENTS: "/admin/payments",
   ADMIN_SETTINGS: "/admin/settings",
 } as const;
 
@@ -36,11 +34,9 @@ export const QUERY_KEYS = {
   CATEGORIES: "categories",
   TAGS: "tags",
   COMMENTS: "comments",
-  MEMBERSHIP: "membership",
   PROFILE: "profile",
   ADMIN_DASHBOARD: "admin-dashboard",
   ADMIN_USERS: "admin-users",
-  ADMIN_PAYMENTS: "admin-payments",
   ADMIN_COMMENTS: "admin-comments",
   ADMIN_SETTINGS: "admin-settings",
 } as const;
@@ -50,8 +46,6 @@ export const PAGINATION = {
   DEFAULT_PER_PAGE: 12,
   MAX_PER_PAGE: 50,
 } as const;
-
-export const MEMBERSHIP_DURATION_DAYS = 90;
 
 export const TOKEN_KEYS = {
   ACCESS: "access_token",

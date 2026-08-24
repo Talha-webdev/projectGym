@@ -52,11 +52,10 @@ gold-glow:    box-shadow gold on CTA hover
 - Blogs: Same grid pattern as Videos
 - Blog Detail: Centered max-width 800px + floating share buttons
 - Gallery: Masonry grid (4/3/2 cols) + lightbox
-- Pricing: Centered single plan card + FAQ accordion
 - Contact: Two-column split (info + form)
 - Login/Register: Centered card, max-width 420px
 - Profile: Sidebar (30%) + tabbed content (70%)
-- Dashboard: Same layout as Profile, membership card hero
+- Dashboard: Same layout as Profile
 - Admin: Fixed sidebar (260px) + scrollable content area
 
 ## Responsive Breakpoints
@@ -70,12 +69,6 @@ gold-glow:    box-shadow gold on CTA hover
 - `prefers-reduced-motion` disables animations
 - Color contrast: text #FFF on surface #1A1A1A = 17.5:1
 - Semantic HTML, ARIA labels, keyboard navigation
-
-## Premium Gating Visual Pattern
-- Gold "PREMIUM" badge on cards (top-right)
-- Gold left border accent on premium items
-- Non-member viewing premium content: blurred preview + overlay CTA "Join to Watch"
-- Member viewing: full access with subtle gold ownership indicator
 
 ## Loading States
 - Skeleton shimmer on dark surfaces for grids

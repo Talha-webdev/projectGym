@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { Search, Clock, Eye } from "lucide-react";
 import { SEOHead } from "@/components/common/SEOHead";
 import { useBlogs, useTags } from "@/hooks/useBlogs";
-import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -150,7 +149,6 @@ export default function Blogs() {
                             </div>
                           )}
                           <div className="absolute right-2 top-2">
-                            {blog.is_premium && <Badge variant="premium">Premium</Badge>}
                           </div>
                         </div>
                         <div className="p-4">

@@ -12,34 +12,6 @@ class PublicService:
         settings = result.scalars().all()
         return {s.key: s.value for s in settings}
 
-    async def get_testimonials(self) -> list[dict]:
-        return [
-            {
-                "id": "1",
-                "name": "Sarah Johnson",
-                "role": "Member since 2024",
-                "content": "This program changed my life. I lost 30 pounds and gained confidence I never knew I had. The coach's dedication is incredible.",
-                "avatar_url": None,
-                "sort_order": 1,
-            },
-            {
-                "id": "2",
-                "name": "Mike Chen",
-                "role": "Member since 2023",
-                "content": "The structured approach to fitness and nutrition made all the difference. Six months in and I'm stronger than ever.",
-                "avatar_url": None,
-                "sort_order": 2,
-            },
-            {
-                "id": "3",
-                "name": "Emma Williams",
-                "role": "Member since 2024",
-                "content": "I've tried many programs, but this one actually works. The community support and expert guidance are unmatched.",
-                "avatar_url": None,
-                "sort_order": 3,
-            },
-        ]
-
     async def get_journey(self) -> list[dict]:
         return [
             {
@@ -91,20 +63,16 @@ class PublicService:
     async def get_faq(self) -> list[dict]:
         return [
             {
-                "question": "How does the 3-month membership work?",
-                "answer": "The membership gives you full access to all premium content including workout videos, nutrition guides, and meal plans for 90 days. You can cancel anytime before renewal.",
-            },
-            {
                 "question": "What equipment do I need?",
                 "answer": "Most workouts can be done with basic equipment like dumbbells and resistance bands. We also offer bodyweight-only programs for beginners.",
             },
             {
-                "question": "Can I get a refund?",
-                "answer": "Yes, we offer a 14-day money-back guarantee if you're not satisfied with the program. No questions asked.",
+                "question": "How do I get started?",
+                "answer": "Simply create a free account and you'll have instant access to all workout videos, blog posts, and the community forum.",
             },
             {
                 "question": "Is there a community aspect?",
-                "answer": "Absolutely! Members get access to our private community where you can share progress, ask questions, and connect with fellow members.",
+                "answer": "Absolutely! You get access to our community where you can share progress, ask questions, and connect with fellow members.",
             },
             {
                 "question": "How often is new content added?",

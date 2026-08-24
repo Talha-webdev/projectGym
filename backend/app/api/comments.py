@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
-from app.dependencies import get_current_user, get_current_member
+from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.comment import (
     CommentResponse,
@@ -42,7 +42,7 @@ async def create_comment(
     request: CommentCreateRequest,
     request_http: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_member),
+    current_user: User = Depends(get_current_user),
 ):
     await rate_limiter.check(request_http, max_requests=10, window_seconds=60)
     if not request.video_id and not request.blog_id:

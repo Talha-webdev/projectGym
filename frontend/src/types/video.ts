@@ -6,7 +6,6 @@ export interface Video {
   cloudinary_url: string;
   thumbnail_url: string | null;
   duration: number | null;
-  is_premium: boolean;
   view_count: number;
   category: string | null;
   created_at: string;

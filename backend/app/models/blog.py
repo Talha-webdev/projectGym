@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Text, Integer, Boolean, DateTime, ForeignKey, Table, Column, Index
+from sqlalchemy import String, Text, Integer, DateTime, ForeignKey, Table, Column, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -23,7 +23,6 @@ class Blog(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     excerpt: Mapped[str | None] = mapped_column(Text, nullable=True)
     cover_image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
-    is_premium: Mapped[bool] = mapped_column(Boolean, default=False)
     read_time_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     meta_description: Mapped[str | None] = mapped_column(String(300), nullable=True)
     view_count: Mapped[int] = mapped_column(Integer, default=0)
@@ -36,5 +35,4 @@ class Blog(Base):
 
     __table_args__ = (
         Index("ix_blogs_published_at", published_at.desc()),
-        Index("ix_blogs_is_premium", "is_premium"),
     )

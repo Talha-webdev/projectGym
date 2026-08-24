@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.schemas.user import UserResponse, UpdateProfileRequest, ChangePasswordRequest
 from app.utils.security import hash_password, verify_password
@@ -41,6 +43,17 @@ async def change_password(
     if not verify_password(request.current_password, current_user.password_hash):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
     current_user.password_hash = hash_password(request.new_password)
+
+    # Revoke all existing refresh tokens for this user
+    result = await db.execute(
+        select(RefreshToken).where(
+            RefreshToken.user_id == current_user.id,
+            RefreshToken.revoked == False,
+        )
+    )
+    for token in result.scalars().all():
+        token.revoked = True
+
     await db.commit()
 
 

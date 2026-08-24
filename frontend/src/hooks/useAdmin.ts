@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { AxiosProgressEvent } from "axios";
 import { adminApi } from "@/services/adminApi";
-import type { DashboardData, AdminUser, AdminPayment, AdminComment, MembershipActionData, SiteSettings } from "@/types/admin";
+import type { DashboardData, AdminUser, AdminComment, SiteSettings } from "@/types/admin";
 import type { PaginatedResponse } from "@/types/api";
+import type { BlogDetail } from "@/types/blog";
 
 interface UploadPayload {
   formData: FormData;
@@ -37,29 +38,6 @@ export function useAdminUserDetail(userId: string) {
       return data;
     },
     enabled: !!userId,
-  });
-}
-
-export function useManageMembership() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ userId, data }: { userId: string; data: MembershipActionData }) => {
-      const response = await adminApi.manageMembership(userId, data);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-    },
-  });
-}
-
-export function useAdminPayments(params?: { page?: number; per_page?: number }) {
-  return useQuery<PaginatedResponse<AdminPayment>>({
-    queryKey: ["admin", "payments", params],
-    queryFn: async () => {
-      const { data } = await adminApi.getPayments(params);
-      return data;
-    },
   });
 }
 
@@ -155,6 +133,17 @@ export function useCreateBlog() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blogs"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "blogs"] });
+    },
+  });
+}
+
+export function useAdminBlogs(params?: Record<string, string | number>) {
+  return useQuery<PaginatedResponse<BlogDetail>>({
+    queryKey: ["admin", "blogs", params],
+    queryFn: async () => {
+      const { data } = await adminApi.getAdminBlogs(params);
+      return data;
     },
   });
 }
@@ -168,6 +157,7 @@ export function useUpdateBlog() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blogs"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "blogs"] });
     },
   });
 }
@@ -180,6 +170,7 @@ export function useDeleteBlog() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blogs"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "blogs"] });
     },
   });
 }

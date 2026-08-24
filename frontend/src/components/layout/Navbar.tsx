@@ -13,7 +13,6 @@ const navLinks = [
   { to: "/videos", label: "Videos" },
   { to: "/blogs", label: "Blogs" },
   { to: "/gallery", label: "Gallery" },
-  { to: "/pricing", label: "Pricing" },
   { to: "/contact", label: "Contact" },
 ];
 
@@ -27,7 +26,7 @@ export const Navbar = memo(function Navbar() {
     <nav className="fixed top-0 z-50 w-full border-b border-gym-border/50 bg-gym-bg/80 backdrop-blur-lg">
       <div className="content-max-width flex h-16 items-center justify-between px-4">
         <Link to="/" className="font-heading text-xl font-bold tracking-tight text-gym-gold">
-          Project GYM
+          LH Fitness
         </Link>
 
         <div className="hidden items-center gap-6 md:flex">

@@ -1,34 +1,28 @@
-import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   User,
   Lock,
-  Crown,
-  Calendar,
-  Clock,
-  CheckCircle,
-  XCircle,
   Save,
   ArrowRight,
   Shield,
-  Sparkles,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { SEOHead } from "@/components/common/SEOHead";
 import { useAuth } from "@/store/AuthContext";
-import { useMembership } from "@/hooks/useMembership";
 import { authApi } from "@/services/authApi";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Avatar } from "@/components/ui/Avatar";
-import { formatDate, formatDateShort } from "@/utils/formatters";
+import { formatDate } from "@/utils/formatters";
 import { fadeInUp, staggerContainer } from "@/utils/animations";
+import { useState, type FormEvent } from "react";
 
 export default function Profile() {
   const { user, setUser } = useAuth();
-  const { data: membership } = useMembership();
 
   const [fullName, setFullName] = useState(user?.full_name || "");
   const [isSaving, setIsSaving] = useState(false);
@@ -41,8 +35,6 @@ export default function Profile() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-
-  const isActive = membership?.is_active ?? false;
 
   const handleProfileSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -100,9 +92,9 @@ export default function Profile() {
             variants={staggerContainer}
             initial="hidden"
             animate="visible"
-            className="grid gap-6 lg:grid-cols-3"
+            className="grid gap-6 lg:grid-cols-2"
           >
-            <motion.div variants={fadeInUp} className="lg:col-span-2 space-y-6">
+            <motion.div variants={fadeInUp}>
               <Card hover={false} className="p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <User className="h-5 w-5 text-gym-gold" />
@@ -120,7 +112,7 @@ export default function Profile() {
                       ) : (
                         <Badge variant="warning" className="gap-1"><XCircle className="h-3 w-3" /> Unverified</Badge>
                       )}
-                      {user?.is_admin && <Badge variant="premium" className="gap-1"><Shield className="h-3 w-3" /> Admin</Badge>}
+                      {user?.is_admin && <Badge variant="gold" className="gap-1"><Shield className="h-3 w-3" /> Admin</Badge>}
                     </div>
                   </div>
                 </div>
@@ -146,7 +138,9 @@ export default function Profile() {
                   </Button>
                 </form>
               </Card>
+            </motion.div>
 
+            <motion.div variants={fadeInUp} className="space-y-6">
               <Card hover={false} className="p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <Lock className="h-5 w-5 text-gym-gold" />
@@ -180,54 +174,6 @@ export default function Profile() {
                     <Lock className="h-4 w-4" /> Change Password
                   </Button>
                 </form>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={fadeInUp} className="space-y-6">
-              <Card hover={false} className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <Crown className="h-5 w-5 text-gym-gold" />
-                  <h2 className="font-heading text-lg font-bold text-gym-text-primary">Membership</h2>
-                </div>
-
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm text-gym-text-secondary">Status</span>
-                  <Badge variant={isActive ? "premium" : "default"}>
-                    {isActive ? "Active" : "Inactive"}
-                  </Badge>
-                </div>
-
-                {isActive ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gym-text-secondary flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> Started</span>
-                      <span className="font-medium text-gym-text-primary">{membership?.start_date ? formatDateShort(membership.start_date) : "—"}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gym-text-secondary flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> Expires</span>
-                      <span className="font-medium text-gym-text-primary">{membership?.end_date ? formatDateShort(membership.end_date) : "—"}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gym-text-secondary flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Days Left</span>
-                      <span className="font-heading text-xl font-bold text-gym-gold">{membership?.days_remaining ?? 0}</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-gym-elevated mt-2">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-gym-gold/60 to-gym-gold transition-all"
-                        style={{ width: `${Math.max(0, Math.min(100, ((membership?.days_remaining ?? 0) / 90) * 100))}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-gym-text-muted">{membership?.days_remaining ?? 0} of 90 days remaining</p>
-                  </div>
-                ) : (
-                  <div className="rounded-xl bg-gym-elevated/50 p-4 text-center mt-2">
-                    <Sparkles className="mx-auto h-6 w-6 text-gym-text-muted" />
-                    <p className="mt-2 text-sm text-gym-text-secondary">No active membership.</p>
-                    <Link to="/pricing" className="mt-3 inline-block">
-                      <Button size="sm"><Crown className="mr-1.5 h-4 w-4" /> Get Membership</Button>
-                    </Link>
-                  </div>
-                )}
               </Card>
 
               <Card hover={false} className="p-6">

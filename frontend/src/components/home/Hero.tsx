@@ -1,17 +1,37 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export function Hero() {
+  const { settings } = useSiteSettings();
+  const heroImage = settings.hero_image_url;
+
   return (
     <section className="relative flex min-h-screen items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-gym-bg via-gym-bg/95 to-gym-bg" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(212,168,83,0.08)_0%,_transparent_70%)]" />
-      <div className="absolute inset-0">
-        <div className="absolute left-1/2 top-1/3 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-gym-gold/5" />
-        <div className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-gym-gold/10" />
-        <div className="absolute left-1/2 top-1/3 h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-gym-gold/20" />
-      </div>
+      {heroImage ? (
+        <>
+          <img
+            src={heroImage}
+            alt="Hero background"
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = "none";
+            }}
+          />
+          <div className="absolute inset-0 bg-gym-bg/70" />
+        </>
+      ) : (
+        <>
+          <div className="absolute inset-0 bg-gradient-to-b from-gym-bg via-gym-bg/95 to-gym-bg" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(212,168,83,0.08)_0%,_transparent_70%)]" />
+          <div className="absolute inset-0">
+            <div className="absolute left-1/2 top-1/3 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-gym-gold/5" />
+            <div className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-gym-gold/10" />
+            <div className="absolute left-1/2 top-1/3 h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-gym-gold/20" />
+          </div>
+        </>
+      )}
       <div className="relative z-10 mx-auto max-w-4xl px-4 text-center">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -19,7 +39,7 @@ export function Hero() {
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
           <span className="mb-6 inline-block rounded-full border border-gym-gold/30 bg-gym-gold-muted px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-gym-gold">
-            Project GYM
+            LH Fitness
           </span>
         </motion.div>
 

@@ -1,3 +1,4 @@
+import html as html_mod
 import logging
 import httpx
 from app.config import settings
@@ -9,8 +10,9 @@ RESEND_API_URL = "https://api.resend.com/emails"
 
 async def send_email(recipient: str, subject: str, html_content: str) -> bool:
     if not settings.RESEND_API_KEY:
-        logger.warning("RESEND_API_KEY not set; skipping email send")
+        logger.warning("RESEND_API_KEY not set; skipping email send to %s: %s", recipient, subject)
         return False
+    from_email = settings.RESEND_FROM_EMAIL or f"{settings.APP_NAME} <noreply@{settings.APP_NAME.lower().replace(' ', '')}.com>"
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
@@ -20,7 +22,7 @@ async def send_email(recipient: str, subject: str, html_content: str) -> bool:
                     "Content-Type": "application/json",
                 },
                 json={
-                    "from": f"{settings.APP_NAME} <noreply@projectgym.com>",
+                    "from": from_email,
                     "to": [recipient],
                     "subject": subject,
                     "html": html_content,
@@ -39,6 +41,7 @@ async def send_email(recipient: str, subject: str, html_content: str) -> bool:
 
 
 def build_verification_email(full_name: str, verification_url: str) -> str:
+    safe_name = html_mod.escape(full_name, quote=True)
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
@@ -47,12 +50,12 @@ def build_verification_email(full_name: str, verification_url: str) -> str:
 <tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 <tr><td style="text-align:center;padding:0 0 24px;">
-<span style="font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:700;color:#D4A853;">Project GYM</span>
+<span style="font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:700;color:#D4A853;">{settings.APP_NAME}</span>
 </td></tr>
 <tr><td style="background-color:#1A1A1A;border:1px solid #2A2A2A;border-radius:16px;padding:40px;">
-<h1 style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:24px;font-weight:700;color:#FFFFFF;margin:0 0 8px;">Welcome to Project GYM</h1>
+<h1 style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:24px;font-weight:700;color:#FFFFFF;margin:0 0 8px;">Welcome to {settings.APP_NAME}</h1>
 <p style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:16px;color:#A0A0A0;margin:0 0 24px;line-height:1.5;">
-Hi <strong style="color:#FFFFFF;">{full_name}</strong>,<br><br>
+Hi <strong style="color:#FFFFFF;">{safe_name}</strong>,<br><br>
 Thanks for creating an account! Please verify your email address to get started on your fitness journey.
 </p>
 <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
@@ -76,6 +79,7 @@ If you didn't create this account, you can safely ignore this email.
 
 
 def build_password_reset_email(full_name: str, reset_url: str) -> str:
+    safe_name = html_mod.escape(full_name, quote=True)
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
@@ -84,12 +88,12 @@ def build_password_reset_email(full_name: str, reset_url: str) -> str:
 <tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 <tr><td style="text-align:center;padding:0 0 24px;">
-<span style="font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:700;color:#D4A853;">Project GYM</span>
+<span style="font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:700;color:#D4A853;">{settings.APP_NAME}</span>
 </td></tr>
 <tr><td style="background-color:#1A1A1A;border:1px solid #2A2A2A;border-radius:16px;padding:40px;">
 <h1 style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:24px;font-weight:700;color:#FFFFFF;margin:0 0 8px;">Reset Your Password</h1>
 <p style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:16px;color:#A0A0A0;margin:0 0 24px;line-height:1.5;">
-Hi <strong style="color:#FFFFFF;">{full_name}</strong>,<br><br>
+Hi <strong style="color:#FFFFFF;">{safe_name}</strong>,<br><br>
 We received a request to reset your password. Click the button below to set a new one.
 </p>
 <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
@@ -115,16 +119,20 @@ If you didn't request this, you can safely ignore this email.
 async def send_verification_email(email: str, full_name: str, token: str) -> bool:
     verification_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
     html = build_verification_email(full_name, verification_url)
-    return await send_email(email, "Verify your Project GYM account", html)
+    return await send_email(email, f"Verify your {settings.APP_NAME} account", html)
 
 
 async def send_password_reset_email(email: str, full_name: str, token: str) -> bool:
     reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
     html = build_password_reset_email(full_name, reset_url)
-    return await send_email(email, "Reset your Project GYM password", html)
+    return await send_email(email, f"Reset your {settings.APP_NAME} password", html)
 
 
 def build_contact_email(name: str, email: str, subject: str, message: str) -> str:
+    safe_name = html_mod.escape(name, quote=True)
+    safe_email = html_mod.escape(email, quote=True)
+    safe_subject = html_mod.escape(subject, quote=True)
+    safe_message = html_mod.escape(message, quote=True)
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
@@ -133,23 +141,23 @@ def build_contact_email(name: str, email: str, subject: str, message: str) -> st
 <tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 <tr><td style="text-align:center;padding:0 0 24px;">
-<span style="font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:700;color:#D4A853;">Project GYM</span>
+<span style="font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:700;color:#D4A853;">{settings.APP_NAME}</span>
 </td></tr>
 <tr><td style="background-color:#1A1A1A;border:1px solid #2A2A2A;border-radius:16px;padding:40px;">
 <h1 style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:24px;font-weight:700;color:#FFFFFF;margin:0 0 8px;">New Contact Message</h1>
 <table cellpadding="0" cellspacing="0" style="width:100%;margin:24px 0;">
 <tr><td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#6B6B6B;width:100px;vertical-align:top;">From</td>
-<td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#FFFFFF;">{name}</td></tr>
+<td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#FFFFFF;">{safe_name}</td></tr>
 <tr><td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#6B6B6B;vertical-align:top;">Email</td>
-<td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#D4A853;"><a href="mailto:{email}" style="color:#D4A853;text-decoration:none;">{email}</a></td></tr>
+<td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#D4A853;"><a href="mailto:{safe_email}" style="color:#D4A853;text-decoration:none;">{safe_email}</a></td></tr>
 <tr><td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#6B6B6B;vertical-align:top;">Subject</td>
-<td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#FFFFFF;">{subject}</td></tr>
+<td style="padding:8px 0;font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;color:#FFFFFF;">{safe_subject}</td></tr>
 </table>
 <hr style="border:none;border-top:1px solid #2A2A2A;margin:16px 0;">
-<p style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:16px;color:#A0A0A0;margin:0;line-height:1.6;white-space:pre-wrap;">{message}</p>
+<p style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:16px;color:#A0A0A0;margin:0;line-height:1.6;white-space:pre-wrap;">{safe_message}</p>
 <hr style="border:none;border-top:1px solid #2A2A2A;margin:24px 0;">
 <p style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:12px;color:#6B6B6B;margin:0;text-align:center;">
-This message was sent via the Project GYM contact form.
+This message was sent via the {settings.APP_NAME} contact form.
 </p>
 </td></tr>
 </table>

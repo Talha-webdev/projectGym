@@ -1,40 +1,23 @@
 import { useState } from "react";
-import { Search, Crown, XCircle, UserX, Calendar } from "lucide-react";
-import { useAdminUsers, useManageMembership } from "@/hooks/useAdmin";
+import { Search, UserX } from "lucide-react";
+import { useAdminUsers } from "@/hooks/useAdmin";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Modal } from "@/components/ui/Modal";
 import { formatDate } from "@/utils/formatters";
-import type { AdminUser } from "@/types/admin";
 
 export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const { data, isLoading, error } = useAdminUsers({ page, per_page: 10, search: search || undefined as string | undefined });
-  const manageMutation = useManageMembership();
-
-  const [manageError, setManageError] = useState("");
-
-  const handleManage = async (action: "activate" | "deactivate" | "extend") => {
-    if (!selectedUser) return;
-    setManageError("");
-    try {
-      await manageMutation.mutateAsync({ userId: selectedUser.id, data: { action, days: 30 } });
-      setSelectedUser(null);
-    } catch {
-      setManageError("Failed to update membership. Please try again.");
-    }
-  };
 
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-gym-text-primary">Users</h1>
-          <p className="mt-1 text-sm text-gym-text-secondary">Manage user accounts and memberships.</p>
+          <p className="mt-1 text-sm text-gym-text-secondary">Manage user accounts.</p>
         </div>
         <div className="relative w-full max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gym-text-muted" />
@@ -69,9 +52,7 @@ export default function AdminUsers() {
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Name</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Email</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Membership</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Joined</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gym-border">
@@ -83,7 +64,7 @@ export default function AdminUsers() {
                           {user.full_name.charAt(0).toUpperCase()}
                         </div>
                         <span className="font-medium text-gym-text-primary">{user.full_name}</span>
-                        {user.is_admin && <Badge variant="premium" className="text-[0.6rem]">Admin</Badge>}
+                        {user.is_admin && <Badge variant="gold" className="text-[0.6rem]">Admin</Badge>}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gym-text-secondary">{user.email}</td>
@@ -92,21 +73,7 @@ export default function AdminUsers() {
                         {user.is_verified ? "Verified" : "Unverified"}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={user.membership_status === "active" ? "premium" : "default"}>
-                        {user.membership_status === "active" ? "Active" : "Inactive"}
-                      </Badge>
-                    </td>
                     <td className="px-4 py-3 text-gym-text-muted">{formatDate(user.created_at)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setSelectedUser(user)}
-                      >
-                        Manage
-                      </Button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -145,58 +112,6 @@ export default function AdminUsers() {
           </div>
         </div>
       )}
-
-      <Modal isOpen={!!selectedUser} onClose={() => { setSelectedUser(null); setManageError(""); }} title="Manage Membership">
-        {selectedUser && (
-          <div className="space-y-4">
-            {manageError && (
-              <div className="rounded-lg border border-gym-error/30 bg-gym-error/5 p-3 text-sm text-gym-error">{manageError}</div>
-            )}
-            <div className="rounded-lg bg-gym-elevated/50 p-4">
-              <p className="font-medium text-gym-text-primary">{selectedUser.full_name}</p>
-              <p className="text-sm text-gym-text-muted">{selectedUser.email}</p>
-              <div className="mt-2 flex items-center gap-2">
-                <Badge variant={selectedUser.membership_status === "active" ? "premium" : "default"}>
-                  {selectedUser.membership_status === "active" ? "Active" : "Inactive"}
-                </Badge>
-                {selectedUser.membership_end && (
-                  <span className="flex items-center gap-1 text-xs text-gym-text-muted">
-                    <Calendar className="h-3 w-3" />
-                    Ends {formatDate(selectedUser.membership_end)}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                onClick={() => handleManage("activate")}
-                disabled={manageMutation.isPending}
-              >
-                <Crown className="mr-1 h-4 w-4" />
-                Activate (30d)
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleManage("extend")}
-                disabled={manageMutation.isPending}
-              >
-                Extend 30 Days
-              </Button>
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={() => handleManage("deactivate")}
-                disabled={manageMutation.isPending}
-              >
-                <XCircle className="mr-1 h-4 w-4" />
-                Deactivate
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 }

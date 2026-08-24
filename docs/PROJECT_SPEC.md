@@ -1,7 +1,7 @@
 # Project Specification
 
 ## Overview
-A production-ready fitness membership website. A personal fitness coach documents his weight-loss journey. Visitors can register, log in, purchase a 3-month membership, watch premium videos, read premium blogs, browse a gallery, and comment. Only the coach uploads content. Only one admin exists.
+A production-ready fitness journey website. A personal fitness coach documents his weight-loss journey. Visitors can register, log in, freely access all content (videos, blogs, gallery), and comment. Only the coach uploads content. Only one admin exists.
 
 ## Brand Identity
 - **Name**: Project GYM
@@ -14,26 +14,25 @@ A production-ready fitness membership website. A personal fitness coach document
 | Role | Permissions |
 |------|-------------|
 | **Visitor** | View public pages, register, login |
-| **Member** | All visitor + premium content, comments, dashboard, profile |
-| **Admin (Coach)** | All member + content management, user management, settings, single admin account |
+| **User** | All visitor + all content access, comments, dashboard, profile |
+| **Admin (Coach)** | All user + content management, user management, settings, single admin account |
 
 ## Features
-- Home, About, My Journey, Videos, Blogs, Gallery, Pricing, Contact pages
-- Authentication (register, login, JWT access + refresh tokens, password reset)
-- Membership (3-month, Stripe payments, webhook activation, expiry)
-- Premium content gating (videos + blogs behind membership)
-- Comments (threaded, member-only posting, admin moderation)
-- Admin panel (dashboard analytics, CRUD content, user management, payments log, settings)
+- Home, About, My Journey, Videos, Blogs, Gallery, Contact pages
+- Authentication (register, login, JWT access + refresh tokens, email verification, password reset)
+- Freely accessible content (all videos, blogs, gallery available to all users)
+- Comments (threaded, authenticated user posting, admin moderation)
+- Admin panel (dashboard analytics, CRUD content, user management, settings)
 - Gallery (masonry grid, lightbox, category filter)
 - SEO (meta tags, Open Graph, sitemap, semantic HTML)
-- Security (JWT rotation, bcrypt, rate limiting, CORS, CSP, Stripe webhook verification)
+- Security (JWT rotation, bcrypt, rate limiting, CORS, security headers)
 
 ## Technology Stack
 ### Frontend
 - React 18+, Vite, Tailwind CSS, React Router v6, React Query (TanStack Query v5), Axios, Framer Motion
 
 ### Backend
-- Python 3.11+, FastAPI, SQLAlchemy 2.0 (async), PostgreSQL 16, Alembic, Pydantic v2, python-jose (JWT), passlib[bcrypt], Stripe SDK, Cloudinary SDK
+- Python 3.11+, FastAPI, SQLAlchemy 2.0 (async), PostgreSQL 16, Alembic, Pydantic v2, python-jose (JWT), passlib[bcrypt], Cloudinary SDK
 
 ### Infrastructure
 - Docker Compose (backend + frontend + PostgreSQL), Nginx (reverse proxy), GitHub Actions (CI/CD)

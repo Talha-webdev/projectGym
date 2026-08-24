@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { Search, Play, Clock, Eye } from "lucide-react";
 import { SEOHead } from "@/components/common/SEOHead";
 import { useVideos, useCategories } from "@/hooks/useVideos";
-import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -35,7 +34,7 @@ export default function Videos() {
     <>
       <SEOHead
         title="Videos"
-        description="Browse our collection of premium workout videos. From beginner to advanced, find the perfect routine for your fitness level."
+        description="Browse our collection of workout videos. From beginner to advanced, find the perfect routine for your fitness level."
         canonical="/videos"
       />
       <div>
@@ -54,7 +53,7 @@ export default function Videos() {
               Video Library
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-gym-text-secondary">
-              Premium workout videos, tutorials, and guided sessions to help you reach your goals.
+              Workout videos, tutorials, and guided sessions to help you reach your goals.
             </p>
           </motion.div>
         </div>
@@ -157,7 +156,6 @@ export default function Videos() {
                             </div>
                           </div>
                           <div className="absolute right-2 top-2 flex gap-1.5">
-                            {video.is_premium && <Badge variant="premium">Premium</Badge>}
                           </div>
                           {video.duration && (
                             <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded bg-black/70 px-2 py-0.5 text-xs text-white">

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Text, Integer, Boolean, DateTime, ForeignKey, Table, Column, Index
+from sqlalchemy import String, Text, Integer, DateTime, ForeignKey, Table, Column, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -25,7 +25,6 @@ class Video(Base):
     cloudinary_url: Mapped[str] = mapped_column(Text, nullable=False)
     thumbnail_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     duration: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    is_premium: Mapped[bool] = mapped_column(Boolean, default=False)
     view_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
@@ -35,5 +34,4 @@ class Video(Base):
 
     __table_args__ = (
         Index("ix_videos_created_at", created_at.desc()),
-        Index("ix_videos_is_premium", "is_premium"),
     )

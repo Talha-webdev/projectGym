@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.config import settings
 from app.database import engine, Base
-from app.api import auth, users, membership, videos, blogs, comments, gallery, contact, public, admin, search, seo, uploads
+from app.api import auth, users, videos, blogs, comments, gallery, contact, public, admin, search, seo, uploads
 from app.middleware.security_headers import SecurityHeadersMiddleware
 
 logging.basicConfig(level=logging.INFO)
@@ -80,7 +80,6 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
-app.include_router(membership.router, prefix="/api/v1")
 app.include_router(videos.router, prefix="/api/v1")
 app.include_router(blogs.router, prefix="/api/v1")
 app.include_router(comments.router, prefix="/api/v1")

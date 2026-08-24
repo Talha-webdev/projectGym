@@ -1,19 +1,13 @@
-import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Eye,
   Clock,
   ArrowLeft,
-  Play,
-  Crown,
-  Lock,
   AlertCircle,
 } from "lucide-react";
 import { SEOHead } from "@/components/common/SEOHead";
 import { useVideo } from "@/hooks/useVideos";
-import { useMembership } from "@/hooks/useMembership";
-import { useAuth } from "@/store/AuthContext";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -24,13 +18,6 @@ import { fadeInUp } from "@/utils/animations";
 export default function VideoDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { data: video, isLoading, error } = useVideo(slug ?? "");
-  const { data: membership } = useMembership();
-  const { isAuthenticated } = useAuth();
-  const [hasPremium, setHasPremium] = useState(false);
-
-  useEffect(() => {
-    if (membership?.is_active) setHasPremium(true);
-  }, [membership]);
 
   if (isLoading) {
     return (
@@ -61,14 +48,11 @@ export default function VideoDetail() {
     );
   }
 
-  const canPlay = !video.is_premium || hasPremium;
-  const videoUrl = canPlay ? video.cloudinary_url : null;
-
   return (
     <>
       <SEOHead
         title={video.title}
-        description={video.description || `Watch ${video.title} on Project GYM`}
+        description={video.description || `Watch ${video.title} on LH Fitness`}
         ogImage={video.thumbnail_url ?? undefined}
         canonical={`/videos/${video.slug}`}
         jsonLd={{
@@ -90,66 +74,27 @@ export default function VideoDetail() {
 
             <div className="grid gap-8 lg:grid-cols-3">
               <div className="lg:col-span-2">
-                {canPlay && videoUrl ? (
-                  <motion.div
-                    variants={fadeInUp}
-                    initial="hidden"
-                    animate="visible"
-                    className="relative overflow-hidden rounded-xl border border-gym-border-light bg-black"
-                  >
-                    <video
-                      src={videoUrl}
-                      controls
-                      preload="metadata"
-                      className="aspect-video w-full"
-                      poster={video.thumbnail_url ?? undefined}
-                    />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    variants={fadeInUp}
-                    initial="hidden"
-                    animate="visible"
-                    className="relative aspect-video overflow-hidden rounded-xl border border-gym-border-light bg-gym-surface"
-                  >
-                    {video.thumbnail_url ? (
-                      <img
-                        src={video.thumbnail_url}
-                        alt={video.title}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-gym-elevated">
-                        <Play className="h-16 w-16 text-gym-text-muted" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
-                      <div className="rounded-full bg-gym-gold/20 p-4 mb-4">
-                        <Lock className="h-8 w-8 text-gym-gold" />
-                      </div>
-                      <h3 className="font-heading text-xl font-bold text-gym-text-primary">Premium Content</h3>
-                      <p className="mt-2 max-w-sm text-center text-sm text-gym-text-secondary">
-                        Subscribe to unlock this video and all other premium content.
-                      </p>
-                      {!isAuthenticated ? (
-                        <Link to="/register" className="mt-6">
-                          <Button><Crown className="mr-2 h-4 w-4" /> Join Now</Button>
-                        </Link>
-                      ) : (
-                        <Link to="/pricing" className="mt-6">
-                          <Button><Crown className="mr-2 h-4 w-4" /> Get Membership</Button>
-                        </Link>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
+                <motion.div
+                  variants={fadeInUp}
+                  initial="hidden"
+                  animate="visible"
+                  className="relative overflow-hidden rounded-xl border border-gym-border-light bg-black"
+                >
+                  <video
+                    src={video.cloudinary_url}
+                    controls
+                    preload="metadata"
+                    crossOrigin="anonymous"
+                    className="aspect-video w-full"
+                    poster={video.thumbnail_url ?? undefined}
+                  />
+                </motion.div>
               </div>
 
               <motion.div variants={fadeInUp} initial="hidden" animate="visible" transition={{ delay: 0.2 }} className="space-y-6">
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     {video.category && <Badge variant="default">{video.category}</Badge>}
-                    {video.is_premium && <Badge variant="premium" className="gap-1"><Crown className="h-3 w-3" /> Premium</Badge>}
                   </div>
                   <h1 className="font-heading text-2xl font-bold text-gym-text-primary leading-tight">{video.title}</h1>
                   <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gym-text-secondary">
@@ -182,10 +127,6 @@ export default function VideoDetail() {
                         <span className="font-medium text-gym-text-primary">{formatDuration(video.duration)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span>Type</span>
-                      <span className="font-medium text-gym-text-primary">{video.is_premium ? "Premium" : "Free"}</span>
-                    </div>
                   </div>
                 </div>
               </motion.div>

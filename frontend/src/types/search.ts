@@ -5,7 +5,6 @@ export interface SearchResultItem {
   source_type: "video" | "blog" | "gallery";
   thumbnail_url: string | null;
   excerpt: string | null;
-  is_premium: boolean;
   created_at: string;
 }
 

@@ -51,16 +51,28 @@ async def upload_video(data: bytes, folder: str) -> dict[str, Any]:
 async def _upload(data: bytes, folder: str, resource_type: str) -> dict[str, Any]:
     configure()
     _require_config()
+    upload_timeout = 600
     try:
-        result = await asyncio.to_thread(
-            cloudinary.uploader.upload,
-            data,
-            folder=folder,
-            resource_type=resource_type,
-            use_filename=True,
-            unique_filename=True,
-            overwrite=False,
+        result = await asyncio.wait_for(
+            asyncio.to_thread(
+                cloudinary.uploader.upload,
+                data,
+                folder=folder,
+                resource_type=resource_type,
+                use_filename=True,
+                unique_filename=True,
+                overwrite=False,
+            ),
+            timeout=upload_timeout,
         )
+    except asyncio.TimeoutError:
+        logger.error(
+            "Cloudinary upload timed out after %ds (resource_type=%s, folder=%s)",
+            upload_timeout, resource_type, folder,
+        )
+        raise RuntimeError(
+            f"Cloudinary upload timed out after {upload_timeout} seconds"
+        ) from None
     except Exception as exc:
         logger.exception("Cloudinary upload failed: %s", exc)
         raise RuntimeError(f"Cloudinary upload failed: {exc}") from exc
@@ -94,6 +106,16 @@ async def destroy_asset(
     except Exception:
         logger.exception("Cloudinary destroy failed for %s", public_id)
         return False
+
+
+def ensure_video_playable(url: str | None) -> str | None:
+    if not url or "res.cloudinary.com/" not in url:
+        return url
+    if "/video/upload/" not in url:
+        return url
+    if "f_auto" in url:
+        return url
+    return url.replace("/video/upload/", "/video/upload/f_auto/")
 
 
 def parse_public_id(url: str | None) -> str | None:

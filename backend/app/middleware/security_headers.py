@@ -14,19 +14,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "camera=(), microphone=(), geolocation=(), "
             "interest-cohort=(), payment=()"
         )
-        response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
-        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
-        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
         csp = (
             f"default-src 'self'; "
-            f"script-src 'self' https://js.stripe.com https://*.cloudinary.com; "
+            f"script-src 'self' https://*.cloudinary.com; "
             f"style-src 'self' 'unsafe-inline'; "
             f"img-src 'self' data: blob: https:; "
-            f"frame-src https://js.stripe.com; "
-            f"connect-src 'self' https://api.stripe.com https://*.cloudinary.com; "
+            f"media-src 'self' https://*.cloudinary.com; "
+            f"connect-src 'self' https://*.cloudinary.com; "
             f"font-src 'self'; "
             f"base-uri 'self'; "
-            f"form-action 'self' https://stripe.com; "
+            f"form-action 'self'; "
         )
         response.headers["Content-Security-Policy"] = csp
         if settings.APP_ENV == "production":

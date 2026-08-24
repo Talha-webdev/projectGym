@@ -187,7 +187,7 @@ class CommentService:
                 avatar_url=comment.user.avatar_url,
             ),
             content=comment.content,
-            parent_id=str(comment.parent_id) if comment.parent_id else None,
+            parent_id=comment.parent_id,
             created_at=comment.created_at,
             replies_count=replies_count,
         )

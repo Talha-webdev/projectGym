@@ -123,8 +123,18 @@ export default function AdminGallery() {
         },
       });
       setModalOpen(false);
-    } catch {
-      setFormError("Failed to upload image. Check the file type/size and try again.");
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: unknown }; status?: number } };
+      const detail = err?.response?.data?.detail;
+      if (typeof detail === "string") {
+        setFormError(detail);
+      } else if (Array.isArray(detail)) {
+        setFormError(detail.map((e: { msg?: string }) => e.msg ?? String(e)).join(", "));
+      } else if (err?.response?.status) {
+        setFormError(`Upload failed (HTTP ${err.response.status}). Check the file type/size and try again.`);
+      } else {
+        setFormError("Failed to upload image. Check the file type/size and try again.");
+      }
     } finally {
       setUploadProgress(null);
     }

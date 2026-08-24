@@ -11,8 +11,7 @@ Nginx (Reverse Proxy / SSL Termination)
      ├── /api/* ──────► FastAPI (Backend)
      │                       │
      │                       ├── PostgreSQL (Database)
-     │                       ├── Cloudinary (Media Storage)
-     │                       └── Stripe (Payments)
+     │                       └── Cloudinary (Media Storage)
      │
      └── /* ─────────► React SPA (Frontend)
                            └── Vite (Build Tool)
@@ -22,25 +21,29 @@ Nginx (Reverse Proxy / SSL Termination)
 ```
 ┌─────────────────────────────────────────────┐
 │              API Layer (routes)              │
-│  auth / users / membership / videos / blogs  │
-│  comments / gallery / contact / admin        │
+│  auth / users / videos / blogs              │
+│  comments / gallery / contact / admin       │
+│  search / seo / uploads / public            │
 ├─────────────────────────────────────────────┤
 │            Service Layer (business logic)    │
-│  auth_service / membership_service           │
-│  payment_service / cloudinary_service        │
-│  email_service / admin_service               │
+│  admin_service / blog_service               │
+│  comment_service / contact_service          │
+│  email_service / gallery_service            │
+│  public_service / search_service            │
+│  seo_service / video_service                │
+│  cloudinary_service                         │
 ├─────────────────────────────────────────────┤
 │            Data Layer (models)               │
 │  SQLAlchemy ORM models + Alembic migrations  │
 ├─────────────────────────────────────────────┤
 │            Infrastructure                    │
-│  PostgreSQL / Redis (future) / Cloudinary    │
+│  PostgreSQL / Cloudinary                    │
 └─────────────────────────────────────────────┘
 ```
 
 ### Layer Responsibilities
 - **API Layer**: Input validation (Pydantic), authentication checks, route definitions, response formatting. No business logic.
-- **Service Layer**: All business logic, external API calls (Stripe, Cloudinary), email sending. No direct DB access — uses data layer.
+- **Service Layer**: All business logic, external API calls (Cloudinary), email sending. No direct DB access — uses data layer.
 - **Data Layer**: SQLAlchemy models, relationships, queries. No business logic.
 
 ## Frontend Architecture (Feature-Based)
@@ -51,7 +54,7 @@ Nginx (Reverse Proxy / SSL Termination)
 ├─────────────────────────────────────────────┤
 │              Components (reusable)           │
 │  ui/ (primitives) / layout/ / auth/          │
-│  membership/ / content/ / comments/ / common/│
+│  content/ / comments/ / home/                │
 ├─────────────────────────────────────────────┤
 │            Hooks (data + logic)              │
 │  React Query hooks per domain                │
@@ -76,13 +79,15 @@ Nginx (Reverse Proxy / SSL Termination)
 6. Route handler validates body via Pydantic
 7. Service layer executes business logic
 8. Data layer queries PostgreSQL via SQLAlchemy
-9. External calls to Stripe/Cloudinary as needed
+9. External calls to Cloudinary as needed
 10. Response flows back through the chain
 
 ## Security Architecture
 - JWT access token (15min) + refresh token (7 days, DB-stored hashed)
+- Token blacklist for logout (in-memory with expiry)
 - CORS whitelist (frontend origin only)
-- Rate limiting per IP (100 req/min, auth: 10 req/min)
-- All passwords bcrypt-hashed (cost 12)
-- Stripe webhook signature verification
+- Rate limiting per IP and per user
+- All passwords bcrypt-hashed
+- Security headers (CSP, Permissions-Policy, HSTS, etc.)
+- HTML-escaping in email templates
 - Cloudinary signed uploads (backend-only)

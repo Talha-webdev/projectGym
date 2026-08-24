@@ -8,7 +8,6 @@
 | Backend (FastAPI) | Railway | Dockerfile build |
 | Database | Neon PostgreSQL | Managed connection string |
 | Media Storage | Cloudinary | API keys |
-| Payments | Stripe | API keys |
 | CI/CD | GitHub Actions | Automated tests + deploy |
 
 ---
@@ -20,7 +19,6 @@
 - Railway account (free tier includes $5 credit)
 - Neon account (free tier includes 0.5GB storage)
 - Cloudinary account (free tier includes 25GB storage)
-- Stripe account (test mode for development)
 
 ---
 
@@ -39,11 +37,6 @@ JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=15
 REFRESH_TOKEN_EXPIRE_DAYS=7
 
-# Stripe (from Stripe Dashboard > Developers > API keys)
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PRICE_ID=price_...   # 3-month membership price ID
-
 # Cloudinary (from Cloudinary Dashboard)
 CLOUDINARY_CLOUD_NAME=your-cloud-name
 CLOUDINARY_API_KEY=your-api-key
@@ -57,10 +50,9 @@ CORS_ORIGINS=https://your-frontend-domain.vercel.app
 FRONTEND_URL=https://your-frontend-domain.vercel.app
 
 # Email (for password reset — Gmail App Password recommended)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
+RESEND_API_KEY=re_xxx
+RESEND_FROM_EMAIL=noreply@yourdomain.com
+ADMIN_EMAIL=your-email@gmail.com
 
 # Sentry (optional — for error tracking)
 SENTRY_DSN=https://xxx@xxx.ingest.us.sentry.io/xxx
@@ -71,7 +63,6 @@ SENTRY_DSN=https://xxx@xxx.ingest.us.sentry.io/xxx
 ```env
 VITE_API_BASE_URL=https://your-backend-domain.railway.app/api/v1
 VITE_APP_NAME=Project GYM
-VITE_STRIPE_PUBLISHABLE_KEY=pk_live_...
 ```
 
 > **Important**: Set these as **GitHub Actions secrets** and **Railway/Vercel environment variables**, never commit them to the repository.
@@ -93,7 +84,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_live_...
    ```
 5. Create the admin user (run once):
    ```bash
-   python scripts/create_admin.py
+   python scripts/seed_admin.py
    ```
 
 ---
@@ -146,7 +137,6 @@ Railway pings `/health` every 10 seconds. The endpoint returns:
 6. Output directory: `dist`
 7. Add environment variables:
    - `VITE_API_BASE_URL` → your Railway backend URL
-   - `VITE_STRIPE_PUBLISHABLE_KEY` → your Stripe publishable key
 8. Deploy
 
 ### Option B: Vercel CLI
@@ -160,15 +150,7 @@ vercel --prod
 
 ### SPA Routing
 
-The `frontend/vercel.json` rewrites all non-API routes to `index.html`, enabling client-side routing:
-
-```json
-{
-  "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ]
-}
-```
+The frontend uses client-side routing via React Router. All non-API routes are rewritten to `index.html`.
 
 ### Custom Domain
 
@@ -180,15 +162,15 @@ The `frontend/vercel.json` rewrites all non-API routes to `index.html`, enabling
 
 ## 5. CI/CD (GitHub Actions)
 
-The workflow `.github/workflows/ci.yml` runs on every push/PR to `main`:
+The workflows run on every push/PR to `main`:
 
 | Job | Triggers | Description |
 |-----|----------|-------------|
 | `frontend-ci` | Any push/PR | npm ci → lint → build |
-| `backend-ci` | Any push/PR | pip install → pytest (with PostgreSQL service) |
+| `backend-ci` | Any push/PR | pip install → pytest |
 | `docker` | Any push/PR | Verify both Docker images build |
-| `deploy-frontend` | Push to main only | Deploy to Vercel via `amondnet/vercel-action` |
-| `deploy-backend` | Push to main only | Deploy to Railway via `bervProject/railway-deploy-action` |
+| `deploy-frontend` | Push to main only | Deploy to Vercel |
+| `deploy-backend` | Push to main only | Deploy to Railway |
 
 ### Required GitHub Secrets
 
@@ -212,31 +194,7 @@ gh secret set RAILWAY_PROJECT_ID --body "your-project-id"
 
 ---
 
-## 6. Stripe Configuration
-
-### Products & Prices
-
-1. Go to Stripe Dashboard → Products → Add Product
-2. Create a one-time product "Project GYM 3-Month Membership"
-3. Price: one-time, fixed amount (e.g., $29.99)
-4. Copy the `price_xxx` ID → set as `STRIPE_PRICE_ID`
-
-### Webhook Endpoint
-
-1. Go to Stripe Dashboard → Developers → Webhooks
-2. Add endpoint: `https://your-backend.railway.app/api/v1/membership/webhook`
-3. Events to listen for:
-   - `checkout.session.completed`
-   - `checkout.session.expired`
-4. Copy the signing secret (`whsec_xxx`) → set as `STRIPE_WEBHOOK_SECRET`
-
-### Testing
-
-Use Stripe test card `4242 4242 4242 4242` with any future expiry and any CVC.
-
----
-
-## 7. Cloudinary Setup
+## 6. Cloudinary Setup
 
 1. Create a Cloudinary account
 2. From Dashboard, copy:
@@ -247,7 +205,7 @@ Use Stripe test card `4242 4242 4242 4242` with any future expiry and any CVC.
 
 ---
 
-## 8. Docker (Local Production Simulation)
+## 7. Docker (Local Production Simulation)
 
 ### Build & Run
 
@@ -282,39 +240,37 @@ The backend Dockerfile uses multi-stage builds:
 
 ---
 
-## 9. Post-Deployment Checklist
+## 8. Post-Deployment Checklist
 
 - [ ] Backend health check returns `200 OK` at `/health`
 - [ ] Frontend loads without console errors
 - [ ] Database migrations have run (`alembic upgrade head`)
-- [ ] Admin user exists (`python scripts/create_admin.py`)
-- [ ] Stripe webhook endpoint is reachable from Stripe Dashboard
+- [ ] Admin user exists (`python scripts/seed_admin.py`)
 - [ ] CORS origins set correctly (no `localhost` in production)
 - [ ] `JWT_SECRET_KEY` is a strong random value
 - [ ] Debug/docs endpoints disabled in production (`/docs`, `/redoc`)
 - [ ] SSL/TLS enabled (automatic with Vercel + Railway)
-- [ ] Rate limiting active (100 req/min default)
+- [ ] Rate limiting active
 - [ ] Sentry DSN configured (if using error tracking)
 - [ ] Custom domain DNS propagated (if using custom domain)
 
 ---
 
-## 10. Troubleshooting
+## 9. Troubleshooting
 
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
 | Backend returns 500 on startup | DB not migrated | Run `alembic upgrade head` |
 | Frontend shows white screen | Vite build failed / env vars missing | Check Vercel deploy logs |
 | CORS errors in browser | `CORS_ORIGINS` doesn't include frontend URL | Update env var and redeploy |
-| Stripe checkout fails | `STRIPE_PRICE_ID` incorrect | Verify in Stripe Dashboard |
 | Auth tokens not working | `JWT_SECRET_KEY` changed | Use same key across all deploys |
 | Images not uploading | Cloudinary credentials wrong | Verify in Cloudinary Dashboard |
-| Emails not sending | SMTP credentials wrong | Use Gmail App Password |
+| Emails not sending | Resend API key wrong | Verify in Resend Dashboard |
 | Rate limiting too aggressive | Default limit too low | Adjust in `rate_limiter.py` |
 
 ---
 
-## 11. Backup & Recovery
+## 10. Backup & Recovery
 
 ### Database Backups (Neon)
 
@@ -332,10 +288,9 @@ psql "postgresql://user:password@ep-xxx.neon.tech/project_gym" < backup_20250101
 
 ---
 
-## 12. Monitoring
+## 11. Monitoring
 
 - **Vercel Analytics**: Built-in for frontend performance
 - **Railway Metrics**: CPU, memory, network for backend
 - **Sentry**: Error tracking (if configured)
-- **Stripe Dashboard**: Payment monitoring, refunds, disputes
 - **Neon Dashboard**: DB connections, query performance, storage

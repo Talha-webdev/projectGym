@@ -1,9 +1,9 @@
 import api from "@/services/api";
-import type { User, AuthTokens, LoginResponse, LoginRequest, RegisterRequest } from "@/types/auth";
+import type { User, AuthTokens, LoginResponse, LoginRequest, RegisterRequest, PendingRegistrationResponse, VerifyEmailResponse } from "@/types/auth";
 
 export const authApi = {
   register: (data: RegisterRequest) =>
-    api.post<LoginResponse>("/auth/register", data),
+    api.post<PendingRegistrationResponse>("/auth/register", data),
 
   login: (data: LoginRequest) =>
     api.post<LoginResponse>("/auth/login", data),
@@ -29,5 +29,5 @@ export const authApi = {
     api.post<{ message: string }>("/auth/reset-password", { token, password }),
 
   verifyEmail: (token: string) =>
-    api.post<{ message: string }>("/auth/verify-email", { token }),
+    api.post<VerifyEmailResponse>("/auth/verify-email", { token }),
 };

@@ -227,11 +227,6 @@ function SearchResultCard({
           <span className="truncate text-sm font-medium text-gym-text-primary">
             {item.title}
           </span>
-          {item.is_premium && (
-            <Badge variant="premium" className="flex-shrink-0 text-[0.55rem]">
-              Premium
-            </Badge>
-          )}
         </div>
         <div className="mt-0.5 flex items-center gap-2">
           <Badge variant="default" className="text-[0.6rem]">

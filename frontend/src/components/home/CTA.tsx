@@ -19,8 +19,8 @@ export function CTA() {
               Ready to Transform?
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-gym-text-secondary">
-              Join thousands of members who have already taken the first step. Start your 3-month
-              journey today and unlock all premium content.
+              Join thousands of members who have already taken the first step. Start your
+              journey today and get access to all content.
             </p>
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <Link
@@ -29,12 +29,6 @@ export function CTA() {
               >
                 Get Started Now
                 <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </Link>
-              <Link
-                to="/pricing"
-                className="rounded-xl border border-gym-border-light px-8 py-4 font-medium text-gym-text-secondary transition-all duration-300 hover:border-gym-gold/30 hover:text-gym-gold"
-              >
-                View Pricing
               </Link>
             </div>
           </div>

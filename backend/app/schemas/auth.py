@@ -68,6 +68,11 @@ class VerifyEmailRequest(BaseModel):
     token: str
 
 
+class PendingRegistrationResponse(BaseModel):
+    message: str
+    email: str
+
+
 class ResetPasswordRequest(BaseModel):
     token: str
     password: str

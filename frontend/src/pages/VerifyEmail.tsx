@@ -1,25 +1,40 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CheckCircle, AlertCircle, Loader2, Mail } from "lucide-react";
 import { SEOHead } from "@/components/common/SEOHead";
 import { Button } from "@/components/ui/Button";
 import { authApi } from "@/services/authApi";
+import { useAuth } from "@/store/AuthContext";
 
-type VerificationState = "verifying" | "success" | "error" | "missing";
+type VerificationState = "verifying" | "registered" | "verified" | "error" | "missing";
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
   const [state, setState] = useState<VerificationState>(token ? "verifying" : "missing");
+  const [message, setMessage] = useState("");
+  const { completeRegistration } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
     const verify = async () => {
       try {
-        await authApi.verifyEmail(token);
-        if (!cancelled) setState("success");
+        const { data } = await authApi.verifyEmail(token);
+        if (cancelled) return;
+        if (data.access_token && data.user) {
+          completeRegistration({
+            access_token: data.access_token,
+            refresh_token: data.refresh_token!,
+            user: data.user,
+          });
+          navigate("/dashboard", { replace: true });
+        } else {
+          setState("verified");
+        }
+        setMessage(data.message);
       } catch {
         if (!cancelled) setState("error");
       }
@@ -49,7 +64,32 @@ export default function VerifyEmail() {
               </motion.div>
             )}
 
-            {state === "success" && (
+            {state === "registered" && (
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+                  className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gym-success/10"
+                >
+                  <CheckCircle className="h-10 w-10 text-gym-success" />
+                </motion.div>
+                <h1 className="font-heading text-3xl font-bold text-gym-text-primary">Registration Successful!</h1>
+                <p className="mt-3 text-gym-text-secondary">
+                  Your email has been verified and your account is now active. Welcome to LH Fitness!
+                </p>
+                <div className="mt-8 flex flex-col items-center gap-3">
+                  <Link to="/dashboard">
+                    <Button>Go to Dashboard</Button>
+                  </Link>
+                  <Link to="/videos" className="text-sm text-gym-text-muted transition-colors hover:text-gym-gold">
+                    Browse Videos
+                  </Link>
+                </div>
+              </motion.div>
+            )}
+
+            {state === "verified" && (
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
                 <motion.div
                   initial={{ scale: 0 }}
@@ -61,11 +101,11 @@ export default function VerifyEmail() {
                 </motion.div>
                 <h1 className="font-heading text-3xl font-bold text-gym-text-primary">Email Verified!</h1>
                 <p className="mt-3 text-gym-text-secondary">
-                  Your email has been verified successfully. You now have full access to all features.
+                  {message || "Your email has been verified successfully. You now have full access to all features."}
                 </p>
                 <div className="mt-8 flex flex-col items-center gap-3">
-                  <Link to="/dashboard">
-                    <Button>Go to Dashboard</Button>
+                  <Link to="/login">
+                    <Button>Go to Login</Button>
                   </Link>
                   <Link to="/videos" className="text-sm text-gym-text-muted transition-colors hover:text-gym-gold">
                     Browse Videos
@@ -81,11 +121,14 @@ export default function VerifyEmail() {
                 </div>
                 <h1 className="font-heading text-2xl font-bold text-gym-text-primary">Verification Failed</h1>
                 <p className="mt-3 text-gym-text-secondary">
-                  This verification link is invalid or has expired. Please request a new one.
+                  This verification link is invalid or has expired. Please register again.
                 </p>
                 <div className="mt-8 flex flex-col items-center gap-3">
-                  <Link to="/dashboard">
-                    <Button variant="outline">Go to Dashboard</Button>
+                  <Link to="/register">
+                    <Button>Register Again</Button>
+                  </Link>
+                  <Link to="/login" className="text-sm text-gym-text-muted transition-colors hover:text-gym-gold">
+                    Back to Login
                   </Link>
                 </div>
               </motion.div>
@@ -101,8 +144,8 @@ export default function VerifyEmail() {
                   No verification token was provided. Please check your email for the verification link.
                 </p>
                 <div className="mt-8 flex flex-col items-center gap-3">
-                  <Link to="/">
-                    <Button>Go Home</Button>
+                  <Link to="/register">
+                    <Button>Register</Button>
                   </Link>
                 </div>
               </motion.div>

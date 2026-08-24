@@ -54,26 +54,6 @@ async def get_current_admin(
     return current_user
 
 
-async def get_current_member(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> User:
-    from app.models.membership import Membership
-    result = await db.execute(
-        select(Membership).where(
-            Membership.user_id == current_user.id,
-            Membership.is_active.is_(True),
-        )
-    )
-    membership = result.scalar_one_or_none()
-    if membership is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Active membership required.",
-        )
-    return current_user
-
-
 async def get_optional_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(
         HTTPBearer(auto_error=False)

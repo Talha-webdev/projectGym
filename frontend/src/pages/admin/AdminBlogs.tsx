@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Plus, FileText, Edit3, Trash2, Search, Upload } from "lucide-react";
-import { useBlogs, useTags } from "@/hooks/useBlogs";
-import { useCreateBlog, useUpdateBlog, useDeleteBlog, useUploadBlogCover } from "@/hooks/useAdmin";
+import { Plus, FileText, Edit3, Trash2, Search, Upload, X } from "lucide-react";
+import { useTags } from "@/hooks/useBlogs";
+import { useCreateBlog, useUpdateBlog, useDeleteBlog, useUploadBlogCover, useAdminBlogs } from "@/hooks/useAdmin";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Modal } from "@/components/ui/Modal";
 import { formatRelativeTime, formatReadTime } from "@/utils/formatters";
@@ -17,7 +16,6 @@ interface BlogForm {
   cover_image_file: File | null;
   cover_image_url: string;
   meta_description: string;
-  is_premium: boolean;
   published: boolean;
   tag_ids: string[];
 }
@@ -29,7 +27,6 @@ const emptyForm: BlogForm = {
   cover_image_file: null,
   cover_image_url: "",
   meta_description: "",
-  is_premium: false,
   published: false,
   tag_ids: [],
 };
@@ -49,10 +46,11 @@ export default function AdminBlogs() {
   const [formError, setFormError] = useState("");
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [tagFilter, setTagFilter] = useState("");
 
   const params: Record<string, string | number> = { page, per_page: 10 };
   if (search) params.search = search;
-  const { data, isLoading, error } = useBlogs(params);
+  const { data, isLoading, error } = useAdminBlogs(params);
   const { data: tags } = useTags();
   const createMutation = useCreateBlog();
   const updateMutation = useUpdateBlog();
@@ -64,6 +62,7 @@ export default function AdminBlogs() {
     setForm(emptyForm);
     setFormError("");
     setUploadProgress(null);
+    setTagFilter("");
     if (coverPreview) URL.revokeObjectURL(coverPreview);
     setCoverPreview(null);
     setModalOpen(true);
@@ -78,7 +77,6 @@ export default function AdminBlogs() {
       cover_image_file: null,
       cover_image_url: blog.cover_image_url || "",
       meta_description: "",
-      is_premium: blog.is_premium,
       published: !!blog.published_at,
       tag_ids: [],
     });
@@ -143,7 +141,6 @@ export default function AdminBlogs() {
       excerpt: form.excerpt.trim() || null,
       cover_image_url: form.cover_image_url.trim() || null,
       meta_description: form.meta_description.trim() || null,
-      is_premium: form.is_premium,
       published: form.published,
     };
     if (form.tag_ids.length > 0) payload.tag_ids = form.tag_ids;
@@ -155,8 +152,20 @@ export default function AdminBlogs() {
         await createMutation.mutateAsync(payload);
       }
       setModalOpen(false);
-    } catch {
-      setFormError("Failed to save blog. Check your input and try again.");
+      setForm(emptyForm);
+      setFormError("");
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { detail?: unknown } }; message?: string };
+      const detail = axiosErr?.response?.data?.detail;
+      if (typeof detail === "string") {
+        setFormError(detail);
+      } else if (Array.isArray(detail)) {
+        setFormError(detail.map((e: { msg?: string }) => e.msg ?? String(e)).join(", "));
+      } else if (axiosErr?.response?.status) {
+        setFormError(`Save failed (HTTP ${axiosErr.response.status}). Check your input and try again.`);
+      } else {
+        setFormError("Failed to save blog. Check your input and try again.");
+      }
     }
   };
 
@@ -211,7 +220,6 @@ export default function AdminBlogs() {
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Title</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Read Time</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Views</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Published</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Actions</th>
                 </tr>
@@ -235,11 +243,6 @@ export default function AdminBlogs() {
                       {blog.read_time_minutes ? formatReadTime(blog.read_time_minutes) : "—"}
                     </td>
                     <td className="px-4 py-3 text-gym-text-secondary">{blog.view_count}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant={blog.is_premium ? "premium" : "default"}>
-                        {blog.is_premium ? "Premium" : "Free"}
-                      </Badge>
-                    </td>
                     <td className="px-4 py-3 text-gym-text-muted">
                       {blog.published_at ? formatRelativeTime(blog.published_at) : "Draft"}
                     </td>
@@ -349,19 +352,50 @@ export default function AdminBlogs() {
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gym-text-secondary">Tags</label>
-            <select multiple value={form.tag_ids} onChange={(e) => setForm((f) => ({ ...f, tag_ids: Array.from(e.target.selectedOptions, (o) => o.value) }))}
-              className="w-full rounded-lg border border-gym-border-light bg-gym-surface px-4 py-2.5 text-sm text-gym-text-primary outline-none focus:border-gym-gold focus:ring-1 focus:ring-gym-gold">
-              {tags?.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
+            <input
+              type="text"
+              placeholder="Type to filter tags…"
+              value={tagFilter}
+              onChange={(e) => setTagFilter(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && tagFilter.trim() && tags) {
+                  e.preventDefault();
+                  const match = tags.find((t) => t.name.toLowerCase() === tagFilter.trim().toLowerCase());
+                  if (match && !form.tag_ids.includes(match.id)) {
+                    setForm((f) => ({ ...f, tag_ids: [...f.tag_ids, match.id] }));
+                  }
+                  setTagFilter("");
+                }
+              }}
+              className="mb-2 w-full rounded-lg border border-gym-border-light bg-gym-surface px-4 py-2.5 text-sm text-gym-text-primary outline-none focus:border-gym-gold focus:ring-1 focus:ring-gym-gold"
+            />
+            {form.tag_ids.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {tags?.filter((t) => form.tag_ids.includes(t.id)).map((t) => (
+                  <span key={t.id} className="inline-flex items-center gap-1 rounded-full bg-gym-gold/15 px-2.5 py-1 text-xs font-medium text-gym-gold">
+                    {t.name}
+                    <button type="button" onClick={() => setForm((f) => ({ ...f, tag_ids: f.tag_ids.filter((id) => id !== t.id) }))}
+                      className="ml-0.5 rounded-full p-0.5 hover:bg-gym-gold/25">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="max-h-40 overflow-y-auto rounded-lg border border-gym-border-light bg-gym-surface p-2">
+              {tags?.filter((t) => !form.tag_ids.includes(t.id) && (!tagFilter || t.name.toLowerCase().includes(tagFilter.toLowerCase()))).length === 0 && (
+                <p className="px-2 py-1 text-xs text-gym-text-muted">{tags?.length ? "All tags selected" : "No tags available"}</p>
+              )}
+              {tags?.filter((t) => !form.tag_ids.includes(t.id) && (!tagFilter || t.name.toLowerCase().includes(tagFilter.toLowerCase()))).map((t) => (
+                <button key={t.id} type="button"
+                  onClick={() => setForm((f) => ({ ...f, tag_ids: [...f.tag_ids, t.id] }))}
+                  className="w-full rounded-md px-3 py-1.5 text-left text-sm text-gym-text-secondary transition-colors hover:bg-gym-elevated hover:text-gym-text-primary">
+                  {t.name}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
           <div className="flex gap-4">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={form.is_premium} onChange={(e) => setForm((f) => ({ ...f, is_premium: e.target.checked }))}
-                className="rounded border-gym-border-light bg-gym-surface text-gym-gold focus:ring-gym-gold" />
-              <span className="text-sm text-gym-text-primary">Premium (members-only)</span>
-            </label>
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={form.published} onChange={(e) => setForm((f) => ({ ...f, published: e.target.checked }))}
                 className="rounded border-gym-border-light bg-gym-surface text-gym-gold focus:ring-gym-gold" />

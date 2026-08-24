@@ -1,10 +1,9 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
-import os
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "Project GYM"
+    APP_NAME: str = "LH Fitness"
     APP_ENV: str = "development"
     DEBUG: bool = False
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
@@ -20,13 +19,8 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    BLACKLIST_TOKENS: bool = True
 
     FRONTEND_URL: str = "http://localhost:5173"
-
-    STRIPE_SECRET_KEY: str = ""
-    STRIPE_WEBHOOK_SECRET: str = ""
-    STRIPE_PRICE_ID: str = ""
 
     CLOUDINARY_CLOUD_NAME: str = ""
     CLOUDINARY_API_KEY: str = ""
@@ -40,6 +34,7 @@ class Settings(BaseSettings):
     SENTRY_DSN: str = ""
 
     RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = ""
 
     ADMIN_EMAIL: str = ""
 
@@ -55,10 +50,6 @@ class Settings(BaseSettings):
                 "JWT_SECRET_KEY is still set to a known default value"
             )
         if self.APP_ENV == "production":
-            if not self.STRIPE_SECRET_KEY:
-                critical.append("STRIPE_SECRET_KEY is not set")
-            if not self.STRIPE_WEBHOOK_SECRET:
-                critical.append("STRIPE_WEBHOOK_SECRET is not set")
             if not self.CLOUDINARY_CLOUD_NAME:
                 critical.append("CLOUDINARY_CLOUD_NAME is not set")
             if not self.DATABASE_URL.startswith("postgresql+asyncpg://"):

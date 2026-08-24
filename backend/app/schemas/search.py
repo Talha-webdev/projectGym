@@ -11,7 +11,6 @@ class SearchResultItem(BaseModel):
     source_type: str
     thumbnail_url: Optional[str] = None
     excerpt: Optional[str] = None
-    is_premium: bool = False
     created_at: datetime
 
 

@@ -23,21 +23,12 @@ async def test_register_success(async_client: AsyncClient, override_get_db, mock
         "password": "StrongPass123!",
         "full_name": "New User",
     }
-    fake_user_resp = UserResponse(
-        id="00000000-0000-0000-0000-000000000001",
-        email="newuser@example.com",
-        full_name="New User",
-        is_admin=False,
-        is_verified=True,
-        created_at=datetime.now(timezone.utc),
-    )
-    with patch.object(UserResponse, "model_validate", return_value=fake_user_resp):
+    with patch("app.api.auth.send_verification_email", new_callable=AsyncMock, return_value=True):
         response = await async_client.post("/api/v1/auth/register", json=payload)
-    assert response.status_code == 201
+    assert response.status_code == 200
     data = response.json()
-    assert "access_token" in data
-    assert "refresh_token" in data
-    assert data["user"]["email"] == payload["email"]
+    assert "message" in data
+    assert data["email"] == payload["email"]
 
 
 @pytest.mark.asyncio
@@ -310,29 +301,6 @@ async def test_reset_password_success_no_patch(
 
 
 @pytest.mark.asyncio
-async def test_verify_email_success(async_client: AsyncClient, override_get_db, mock_db):
-    from tests.conftest import MockUser
-
-    verification = MagicMock()
-    verification.user_id = str(uuid.uuid4())
-    verification.is_expired.return_value = False
-    vt_result = MagicMock()
-    vt_result.scalar_one_or_none.return_value = verification
-
-    user = MockUser()
-    user.is_verified = False
-    user_result = MagicMock()
-    user_result.scalar_one_or_none.return_value = user
-
-    mock_db.execute.side_effect = [vt_result, user_result]
-    response = await async_client.post(
-        "/api/v1/auth/verify-email", json={"token": "valid-token"}
-    )
-    assert response.status_code == 200
-    assert response.json()["message"] == "Email verified successfully"
-
-
-@pytest.mark.asyncio
 async def test_verify_email_invalid_token_rejected(
     async_client: AsyncClient, override_get_db, mock_db
 ):
@@ -343,30 +311,6 @@ async def test_verify_email_invalid_token_rejected(
         "/api/v1/auth/verify-email", json={"token": "bad-token"}
     )
     assert response.status_code == 400
-
-
-@pytest.mark.asyncio
-async def test_verify_email_already_verified(
-    async_client: AsyncClient, override_get_db, mock_db
-):
-    from tests.conftest import MockUser
-
-    verification = MagicMock()
-    verification.user_id = str(uuid.uuid4())
-    verification.is_expired.return_value = False
-    vt_result = MagicMock()
-    vt_result.scalar_one_or_none.return_value = verification
-
-    user = MockUser()
-    user_result = MagicMock()
-    user_result.scalar_one_or_none.return_value = user
-
-    mock_db.execute.side_effect = [vt_result, user_result]
-    response = await async_client.post(
-        "/api/v1/auth/verify-email", json={"token": "used-token"}
-    )
-    assert response.status_code == 200
-    assert response.json()["message"] == "Email is already verified"
 
 
 @pytest.mark.asyncio
@@ -410,3 +354,158 @@ async def test_get_me_with_expired_token(
         "/api/v1/users/me", headers={"Authorization": f"Bearer {token}"}
     )
     assert response.status_code == 401
+
+
+# ── Token revocation tests ───────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_logout_blacklists_access_token(
+    async_client: AsyncClient, override_get_db, mock_db, test_user
+):
+    """After logout, the access token used in the request must be rejected."""
+    access_token = create_access_token({"sub": str(test_user.id)})
+
+    # Mock the refresh token lookup for logout (returns a stored token to revoke)
+    from app.models.refresh_token import RefreshToken
+    stored_refresh = MagicMock(spec=RefreshToken)
+    stored_refresh.revoked = False
+    logout_result = MagicMock()
+    logout_result.scalar_one_or_none.return_value = stored_refresh
+    mock_db.execute.return_value = logout_result
+
+    # Logout with the access token in the header
+    response = await async_client.post(
+        "/api/v1/auth/logout",
+        json={"refresh_token": "some-refresh-token"},
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert response.status_code == 204
+
+    # Now try to use the same access token — should be rejected
+    user_result = MagicMock()
+    user_result.scalar_one_or_none.return_value = test_user
+    mock_db.execute.return_value = user_result
+
+    response = await async_client.get(
+        "/api/v1/users/me",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert response.status_code == 401
+    assert "revoked" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_logout_without_access_token_still_works(
+    async_client: AsyncClient, override_get_db, mock_db
+):
+    """Logout should succeed even without an Authorization header (refresh-only logout)."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_db.execute.return_value = mock_result
+
+    response = await async_client.post(
+        "/api/v1/auth/logout",
+        json={"refresh_token": "some-refresh-token"},
+    )
+    assert response.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_reset_password_revokes_refresh_tokens(
+    async_client: AsyncClient, override_get_db, mock_db
+):
+    """After password reset, all existing refresh tokens for the user must be revoked."""
+    from tests.conftest import MockUser
+
+    user = MockUser()
+    reset_token = create_password_reset_token(
+        {"sub": str(user.id)},
+        expires_delta=timedelta(hours=1),
+    )
+
+    # First call: user lookup (returns the user)
+    user_result = MagicMock()
+    user_result.scalar_one_or_none.return_value = user
+
+    # Second call: refresh token lookup (returns active tokens to revoke)
+    from app.models.refresh_token import RefreshToken
+    token1 = MagicMock(spec=RefreshToken)
+    token1.revoked = False
+    token2 = MagicMock(spec=RefreshToken)
+    token2.revoked = False
+    tokens_result = MagicMock()
+    tokens_result.scalars.return_value.all.return_value = [token1, token2]
+
+    mock_db.execute.side_effect = [user_result, tokens_result]
+
+    response = await async_client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": reset_token, "password": "NewStrongPass456!"},
+    )
+    assert response.status_code == 200
+
+    # Verify all tokens were revoked
+    assert token1.revoked is True
+    assert token2.revoked is True
+
+
+@pytest.mark.asyncio
+async def test_reset_password_no_active_tokens_still_succeeds(
+    async_client: AsyncClient, override_get_db, mock_db
+):
+    """Password reset should succeed even if user has no active refresh tokens."""
+    from tests.conftest import MockUser
+
+    user = MockUser()
+    reset_token = create_password_reset_token(
+        {"sub": str(user.id)},
+        expires_delta=timedelta(hours=1),
+    )
+
+    user_result = MagicMock()
+    user_result.scalar_one_or_none.return_value = user
+
+    tokens_result = MagicMock()
+    tokens_result.scalars.return_value.all.return_value = []
+
+    mock_db.execute.side_effect = [user_result, tokens_result]
+
+    response = await async_client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": reset_token, "password": "NewStrongPass456!"},
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_change_password_revokes_refresh_tokens(
+    async_client: AsyncClient, override_get_db, mock_db, test_user
+):
+    """After password change, all existing refresh tokens for the user must be revoked."""
+    from tests.conftest import MockUser
+    from app.models.refresh_token import RefreshToken
+
+    user = MockUser()
+    user.password_hash = hash_password("OldPass123!")
+
+    # First call: current user lookup for get_current_user dependency
+    user_result = MagicMock()
+    user_result.scalar_one_or_none.return_value = user
+
+    # Second call: refresh token lookup for revocation
+    token1 = MagicMock(spec=RefreshToken)
+    token1.revoked = False
+    tokens_result = MagicMock()
+    tokens_result.scalars.return_value.all.return_value = [token1]
+
+    mock_db.execute.side_effect = [user_result, tokens_result]
+
+    access_token = create_access_token({"sub": str(user.id)})
+    response = await async_client.patch(
+        "/api/v1/users/me/password",
+        json={"current_password": "OldPass123!", "new_password": "NewPass456!"},
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert response.status_code == 204
+    assert token1.revoked is True

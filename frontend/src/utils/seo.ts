@@ -54,7 +54,7 @@ export function articleSchema({
     },
     publisher: {
       "@type": "Organization",
-      name: "Project GYM",
+      name: "LH Fitness",
     },
     mainEntityOfPage: {
       "@type": "WebPage",

@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -21,13 +21,12 @@ class MockUser:
         self.avatar_url = None
         self.is_admin = is_admin
         self.is_verified = True
-        self.membership = None
         self.created_at = datetime.now(timezone.utc)
         self.updated_at = datetime.now(timezone.utc)
 
 
 class MockVideo:
-    def __init__(self, is_premium: bool = False):
+    def __init__(self):
         self.id = str(uuid.uuid4())
         self.title = "Test Video"
         self.slug = "test-video"
@@ -36,37 +35,10 @@ class MockVideo:
         self.cloudinary_url = "https://res.cloudinary.com/test/video.mp4"
         self.thumbnail_url = "https://res.cloudinary.com/test/thumb.jpg"
         self.duration = 300
-        self.is_premium = is_premium
         self.view_count = 0
         self.created_at = datetime.now(timezone.utc)
         self.updated_at = datetime.now(timezone.utc)
         self.categories = []
-
-
-class MockMembership:
-    def __init__(self, is_active: bool = True, days_remaining: int = 90):
-        self.id = str(uuid.uuid4())
-        self.user_id = None
-        self.is_active = is_active
-        now = datetime.now(timezone.utc)
-        self.start_date = now - timedelta(days=30)
-        self.end_date = now + timedelta(days=days_remaining) if is_active else now - timedelta(days=10)
-        self.stripe_subscription_id = None
-        self.created_at = now
-        self.updated_at = now
-
-
-class MockPayment:
-    def __init__(self):
-        self.id = str(uuid.uuid4())
-        self.user_id = str(uuid.uuid4())
-        self.stripe_session_id = f"cs_test_{uuid.uuid4().hex[:12]}"
-        self.stripe_payment_intent_id = f"pi_test_{uuid.uuid4().hex[:12]}"
-        self.stripe_charge_id = f"ch_test_{uuid.uuid4().hex[:12]}"
-        self.amount = 49.00
-        self.currency = "usd"
-        self.status = "completed"
-        self.created_at = datetime.now(timezone.utc)
 
 
 class MockBlog:
@@ -77,7 +49,6 @@ class MockBlog:
         self.content = "Test content"
         self.excerpt = "Test excerpt"
         self.cover_image_url = "https://res.cloudinary.com/test/cover.jpg"
-        self.is_premium = False
         self.read_time_minutes = 5
         self.meta_description = "Test meta"
         self.view_count = 0

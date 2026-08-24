@@ -1,7 +1,14 @@
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "@/utils/animations";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export function CoachIntro() {
+  const { settings } = useSiteSettings();
+  const coachImage = settings.coach_image_url;
+  const coachName = settings.coach_name || "Coach";
+  const coachBio = settings.coach_bio || "I've been where you are. After years of struggling with my weight and health, I made a decision to change. Through discipline, proper nutrition, and consistent training, I lost over 150 pounds and completely transformed my life.";
+  const coachBioParagraph2 = settings.coach_bio ? "" : "Now, I'm dedicated to helping you achieve the same results. Every program, every workout, every meal plan is designed with one thing in mind - your success.";
+
   return (
     <section className="section-padding bg-gym-surface/50">
       <div className="content-max-width px-4">
@@ -13,7 +20,18 @@ export function CoachIntro() {
           className="grid items-center gap-12 md:grid-cols-2"
         >
           <motion.div variants={fadeInUp} className="relative">
-            <div className="aspect-[3/4] rounded-2xl bg-gradient-to-br from-gym-gold/20 to-gym-elevated" />
+            <div className="aspect-[3/4] rounded-2xl bg-gradient-to-br from-gym-gold/20 to-gym-elevated overflow-hidden">
+              {coachImage && (
+                <img
+                  src={coachImage}
+                  alt={coachName}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              )}
+            </div>
             <div className="absolute -bottom-4 -right-4 h-full w-full rounded-2xl border border-gym-gold/20" />
           </motion.div>
 
@@ -23,17 +41,16 @@ export function CoachIntro() {
             </span>
             <h2 className="font-heading text-[clamp(1.75rem,3vw,2.75rem)] font-bold text-gym-text-primary">
               Meet Your{" "}
-              <span className="text-gym-gold">Coach</span>
+              <span className="text-gym-gold">{coachName}</span>
             </h2>
             <p className="text-gym-text-secondary leading-relaxed">
-              I've been where you are. After years of struggling with my weight and health, I made a
-              decision to change. Through discipline, proper nutrition, and consistent training, I
-              lost over 150 pounds and completely transformed my life.
+              {coachBio}
             </p>
-            <p className="text-gym-text-secondary leading-relaxed">
-              Now, I'm dedicated to helping you achieve the same results. Every program, every
-              workout, every meal plan is designed with one thing in mind - your success.
-            </p>
+            {coachBioParagraph2 && (
+              <p className="text-gym-text-secondary leading-relaxed">
+                {coachBioParagraph2}
+              </p>
+            )}
             <div className="flex items-center gap-6 pt-2">
               <div>
                 <p className="font-heading text-2xl font-bold text-gym-gold">150+</p>

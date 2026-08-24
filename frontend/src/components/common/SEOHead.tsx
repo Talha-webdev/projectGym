@@ -11,7 +11,7 @@ interface SEOHeadProps {
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
-const SITE_NAME = "Project GYM";
+const SITE_NAME = "LH Fitness";
 const DEFAULT_DESCRIPTION = "Transform your body and life with Coach's proven 3-month fitness system.";
 const DEFAULT_OG_IMAGE = "https://projectgym.com/og-default.jpg";
 

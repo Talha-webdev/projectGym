@@ -28,3 +28,15 @@ export interface RegisterRequest {
   password: string;
   full_name: string;
 }
+
+export interface PendingRegistrationResponse {
+  message: string;
+  email: string;
+}
+
+export interface VerifyEmailResponse {
+  message: string;
+  access_token?: string;
+  refresh_token?: string;
+  user?: User;
+}

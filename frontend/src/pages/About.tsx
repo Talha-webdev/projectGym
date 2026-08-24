@@ -3,15 +3,7 @@ import { Check, Award, Target, Users, Heart } from "lucide-react";
 import { SEOHead } from "@/components/common/SEOHead";
 import { fadeInUp, staggerContainer, sectionVariants } from "@/utils/animations";
 import { Link } from "react-router-dom";
-
-const milestones = [
-  { year: "2019", label: "Started the Journey", description: "Weighed over 300 lbs, decided to make a change" },
-  { year: "2020", label: "First 50 lbs Lost", description: "Built consistent workout and nutrition habits" },
-  { year: "2021", label: "100 lbs Down", description: "Halfway to the goal, feeling stronger every day" },
-  { year: "2022", label: "150+ lbs Lost", description: "Reached the transformation goal, launched Project GYM" },
-  { year: "2023", label: "Helping Others", description: "Coached hundreds of members to their own transformations" },
-  { year: "2024", label: "Growing Community", description: "10,000+ coaching hours, thousands of lives changed" },
-];
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const values = [
   {
@@ -45,6 +37,11 @@ const results = [
 ];
 
 export default function About() {
+  const { settings } = useSiteSettings();
+  const storyImage = settings.about_story_image_url;
+  const beforeImage = settings.about_before_image_url;
+  const afterImage = settings.about_after_image_url;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -52,8 +49,8 @@ export default function About() {
       exit={{ opacity: 0 }}
     >
       <SEOHead
-        title="About - Project GYM"
-        description="Learn about Coach's personal fitness journey and the story behind Project GYM. From 300+ lbs to transformation coach."
+        title="About - LH Fitness"
+        description="Learn about Coach's personal fitness journey and the story behind LH Fitness. From 300+ lbs to transformation coach."
         canonical="/about"
       />
 
@@ -117,6 +114,18 @@ export default function About() {
             </motion.div>
 
             <motion.div variants={fadeInUp} className="space-y-5">
+              {storyImage && (
+                <div className="overflow-hidden rounded-xl">
+                  <img
+                    src={storyImage}
+                    alt="Our story"
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                </div>
+              )}
               <p className="text-gym-text-secondary leading-relaxed">
                 I spent years trapped in a body that didn't feel like my own. At my heaviest, I was
                 over 300 pounds, struggling with simple daily activities, and convinced that change
@@ -135,7 +144,7 @@ export default function About() {
                 of when given the right tools and support.
               </p>
               <p className="text-gym-text-secondary leading-relaxed">
-                That's why I created Project GYM. Not as a business, but as a mission. I want to
+                That's why I created LH Fitness. Not as a business, but as a mission. I want to
                 give everyone the roadmap that I wish I'd had — the science-backed methods, the
                 real-world strategies, and the unshakable support system that makes transformation
                 not just possible, but inevitable.
@@ -208,18 +217,40 @@ export default function About() {
             >
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <div className="aspect-[3/4] rounded-xl bg-gradient-to-b from-gym-elevated to-gym-surface">
-                    <div className="flex h-full items-center justify-center">
-                      <span className="text-xs text-gym-text-muted">Before</span>
-                    </div>
+                  <div className="aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-b from-gym-elevated to-gym-surface">
+                    {beforeImage ? (
+                      <img
+                        src={beforeImage}
+                        alt="Before"
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <span className="text-xs text-gym-text-muted">Before</span>
+                      </div>
+                    )}
                   </div>
                   <p className="text-center text-xs font-medium text-gym-text-muted">Before</p>
                 </div>
                 <div className="space-y-2">
-                  <div className="aspect-[3/4] rounded-xl bg-gradient-to-b from-gym-gold/20 to-gym-gold/5">
-                    <div className="flex h-full items-center justify-center">
-                      <span className="text-xs text-gym-gold">After</span>
-                    </div>
+                  <div className="aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-b from-gym-gold/20 to-gym-gold/5">
+                    {afterImage ? (
+                      <img
+                        src={afterImage}
+                        alt="After"
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <span className="text-xs text-gym-gold">After</span>
+                      </div>
+                    )}
                   </div>
                   <p className="text-center text-xs font-medium text-gym-gold">After</p>
                 </div>
@@ -248,7 +279,7 @@ export default function About() {
                 <span className="text-gym-gold">Values</span>
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-gym-text-secondary leading-relaxed">
-                Project GYM was built on a simple belief: everyone deserves the tools and support
+                LH Fitness was built on a simple belief: everyone deserves the tools and support
                 to transform their life. Here's what guides everything we do.
               </p>
             </motion.div>
@@ -329,57 +360,6 @@ export default function About() {
         </div>
       </motion.section>
 
-      {/* Milestones Timeline */}
-      <section className="section-padding">
-        <div className="content-max-width px-4">
-          <motion.div
-            variants={sectionVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="mb-12 text-center"
-          >
-            <span className="inline-block rounded-full border border-gym-gold/30 bg-gym-gold-muted px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-gym-gold">
-              Milestones
-            </span>
-            <h2 className="mt-4 font-heading text-[clamp(1.75rem,3vw,2.75rem)] font-bold text-gym-text-primary">
-              The{" "}
-              <span className="text-gym-gold">Journey</span>{" "}
-              So Far
-            </h2>
-          </motion.div>
-
-          <div className="mx-auto max-w-[900px]">
-            {milestones.map((milestone, i) => (
-              <motion.div
-                key={milestone.year}
-                variants={fadeInUp}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                className="relative flex gap-6 pb-12 last:pb-0"
-              >
-                {i < milestones.length - 1 && (
-                  <div className="absolute left-[19px] top-10 h-full w-px bg-gym-border-light" />
-                )}
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-gym-gold bg-gym-gold-muted">
-                  <span className="text-xs font-bold text-gym-gold">{milestone.year.slice(-2)}</span>
-                </div>
-                <div className="pt-1">
-                  <span className="text-xs font-medium text-gym-gold">{milestone.year}</span>
-                  <h3 className="mt-1 font-heading text-lg font-semibold text-gym-text-primary">
-                    {milestone.label}
-                  </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-gym-text-secondary">
-                    {milestone.description}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* CTA */}
       <motion.section
         variants={sectionVariants}
@@ -396,12 +376,12 @@ export default function About() {
                 <span className="text-gym-gold">Transformation?</span>
               </h2>
               <p className="mt-4 text-gym-text-secondary leading-relaxed">
-                Every journey begins with a single step. Join Project GYM today and get access to
-                premium workouts, nutrition guides, and a community that will push you to be your best.
+                Every journey begins with a single step. Join LH Fitness today and get access to
+                workouts, nutrition guides, and a community that will push you to be your best.
               </p>
               <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                 <Link
-                  to="/pricing"
+                  to="/register"
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-gym-gold px-5 py-2.5 text-sm font-semibold text-black transition-all duration-200 hover:bg-gym-gold-hover active:scale-[0.98]"
                 >
                   Join Now

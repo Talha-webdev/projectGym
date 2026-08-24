@@ -3,8 +3,7 @@
 ## ER Diagram
 ```
 users 1──N refresh_tokens
-users 1──1 memberships
-users 1──N payments
+users 1──N pending_registrations
 users 1──N comments
 videos 1──N comments
 blogs  1──N comments
@@ -28,28 +27,13 @@ blogs  M──N tags (via blog_tags)
 | created_at | TIMESTAMPTZ | DEFAULT NOW() |
 | updated_at | TIMESTAMPTZ | DEFAULT NOW() |
 
-### memberships
+### pending_registrations
 | Column | Type | Constraints |
 |--------|------|-------------|
 | id | UUID | PK |
-| user_id | UUID | FK, UNIQUE |
-| is_active | BOOLEAN | DEFAULT FALSE |
-| start_date | TIMESTAMPTZ | NULLABLE |
-| end_date | TIMESTAMPTZ | NULLABLE |
-| stripe_subscription_id | VARCHAR(255) | UNIQUE |
-| created_at | TIMESTAMPTZ | DEFAULT NOW() |
-| updated_at | TIMESTAMPTZ | DEFAULT NOW() |
-
-### payments
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | UUID | PK |
-| user_id | UUID | FK |
-| stripe_session_id | VARCHAR(255) | UNIQUE, NOT NULL |
-| stripe_payment_intent_id | VARCHAR(255) | NULLABLE |
-| amount | DECIMAL(10,2) | NOT NULL |
-| currency | VARCHAR(3) | DEFAULT 'usd' |
-| status | VARCHAR(50) | CHECK IN ('completed','failed','refunded') |
+| user_id | UUID | FK → users.id |
+| token | VARCHAR(255) | UNIQUE, NOT NULL |
+| expires_at | TIMESTAMPTZ | NOT NULL |
 | created_at | TIMESTAMPTZ | DEFAULT NOW() |
 
 ### videos
@@ -63,7 +47,6 @@ blogs  M──N tags (via blog_tags)
 | cloudinary_url | TEXT | NOT NULL |
 | thumbnail_url | TEXT | NULLABLE |
 | duration | INTEGER | NULLABLE |
-| is_premium | BOOLEAN | DEFAULT FALSE |
 | view_count | INTEGER | DEFAULT 0 |
 | created_at | TIMESTAMPTZ | DEFAULT NOW() |
 | updated_at | TIMESTAMPTZ | DEFAULT NOW() |
@@ -87,7 +70,6 @@ Composite PK: (video_id, category_id)
 | content | TEXT | NOT NULL |
 | excerpt | TEXT | NULLABLE |
 | cover_image_url | TEXT | NULLABLE |
-| is_premium | BOOLEAN | DEFAULT FALSE |
 | read_time_minutes | INTEGER | NULLABLE |
 | meta_description | VARCHAR(300) | NULLABLE |
 | view_count | INTEGER | DEFAULT 0 |
@@ -149,13 +131,11 @@ CHECK: Exactly one of video_id or blog_id must be non-null.
 | updated_at | TIMESTAMPTZ | DEFAULT NOW() |
 
 ## Indexes
-- `videos.slug` UNIQUE, `videos.created_at` DESC, `videos.is_premium`
-- `blogs.slug` UNIQUE, `blogs.published_at` DESC, `blogs.is_premium`
+- `videos.slug` UNIQUE, `videos.created_at` DESC
+- `blogs.slug` UNIQUE, `blogs.published_at` DESC
 - `comments.video_id + created_at`, `comments.blog_id + created_at`
 - `comments.parent_id` (for threaded loading)
-- `memberships.is_active + end_date` (expiry cron)
-- `payments.user_id + created_at`
-- Partial: `users.is_admin WHERE TRUE`, `memberships.is_active WHERE TRUE`
+- Partial: `users.is_admin WHERE TRUE`
 
 ## Foreign Keys
-All CASCADE on delete except payments (RESTRICT). Comment parent_id: SET NULL on delete.
+All CASCADE on delete. Comment parent_id: SET NULL on delete.

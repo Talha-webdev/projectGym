@@ -4,7 +4,6 @@ import { useVideos, useCategories } from "@/hooks/useVideos";
 import { useUpdateVideo, useDeleteVideo, useUploadVideo, useUploadThumbnail } from "@/hooks/useAdmin";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Modal } from "@/components/ui/Modal";
 import { formatRelativeTime, formatDuration, pluralize } from "@/utils/formatters";
@@ -16,7 +15,6 @@ interface VideoForm {
   videoFile: File | null;
   thumbnailFile: File | null;
   duration: string;
-  is_premium: boolean;
   category_ids: string[];
 }
 
@@ -26,7 +24,6 @@ const emptyForm: VideoForm = {
   videoFile: null,
   thumbnailFile: null,
   duration: "",
-  is_premium: false,
   category_ids: [],
 };
 
@@ -73,7 +70,6 @@ export default function AdminVideos() {
       videoFile: null,
       thumbnailFile: null,
       duration: video.duration?.toString() || "",
-      is_premium: video.is_premium,
       category_ids: [],
     });
     setThumbnailPreview(null);
@@ -112,7 +108,6 @@ export default function AdminVideos() {
       const payload: Record<string, unknown> = {
         title: form.title.trim(),
         description: form.description.trim() || null,
-        is_premium: form.is_premium,
       };
       if (form.duration) payload.duration = parseInt(form.duration, 10);
       if (form.category_ids.length > 0) payload.category_ids = form.category_ids;
@@ -145,7 +140,6 @@ export default function AdminVideos() {
     fd.append("title", form.title.trim());
     if (form.description.trim()) fd.append("description", form.description.trim());
     if (form.duration) fd.append("duration", parseInt(form.duration, 10).toString());
-    fd.append("is_premium", String(form.is_premium));
     if (form.category_ids.length > 0) fd.append("category_ids", form.category_ids.join(","));
     if (form.thumbnailFile) fd.append("thumbnail", form.thumbnailFile);
 
@@ -157,8 +151,21 @@ export default function AdminVideos() {
         },
       });
       setModalOpen(false);
-    } catch {
-      setFormError("Failed to upload video. Check the file type/size and try again.");
+    } catch (error: unknown) {
+      console.error("[AdminVideos] Upload error:", error);
+      const err = error as { code?: string; message?: string; response?: { data?: { detail?: unknown }; status?: number } };
+      const detail = err?.response?.data?.detail;
+      if (typeof detail === "string") {
+        setFormError(detail);
+      } else if (Array.isArray(detail)) {
+        setFormError(detail.map((e: { msg?: string }) => e.msg ?? String(e)).join(", "));
+      } else if (err?.response?.status) {
+        setFormError(`Upload failed (HTTP ${err.response.status}). Check the file type/size and try again.`);
+      } else {
+        const code = err?.code || "UNKNOWN";
+        const msg = err?.message || "No message";
+        setFormError(`Network error [${code}]: ${msg}`);
+      }
     } finally {
       setUploadProgress(null);
     }
@@ -216,7 +223,6 @@ export default function AdminVideos() {
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Category</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Duration</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Views</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Created</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gym-text-muted">Actions</th>
                 </tr>
@@ -242,11 +248,6 @@ export default function AdminVideos() {
                     </td>
                     <td className="px-4 py-3 text-gym-text-secondary">
                       {video.view_count} {pluralize(video.view_count, "view")}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={video.is_premium ? "premium" : "default"}>
-                        {video.is_premium ? "Premium" : "Free"}
-                      </Badge>
                     </td>
                     <td className="px-4 py-3 text-gym-text-muted">{formatRelativeTime(video.created_at)}</td>
                     <td className="px-4 py-3 text-right">
@@ -375,11 +376,6 @@ export default function AdminVideos() {
               </select>
             </div>
           </div>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={form.is_premium} onChange={(e) => setForm((f) => ({ ...f, is_premium: e.target.checked }))}
-              className="rounded border-gym-border-light bg-gym-surface text-gym-gold focus:ring-gym-gold" />
-            <span className="text-sm text-gym-text-primary">Premium (members-only)</span>
-          </label>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={closeModal}>Cancel</Button>
             <Button onClick={handleSubmit} isLoading={isSaving}>

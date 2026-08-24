@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const results = [
   "Lost over 150 pounds naturally",
@@ -10,6 +11,9 @@ const results = [
 ];
 
 export function BeforeAfter() {
+  const { settings } = useSiteSettings();
+  const beforeImage = settings.before_image_url;
+  const afterImage = settings.after_image_url;
   return (
     <section className="section-padding">
       <div className="content-max-width px-4">
@@ -72,18 +76,40 @@ export function BeforeAfter() {
           >
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <div className="aspect-[3/4] rounded-xl bg-gradient-to-b from-gym-elevated to-gym-surface">
-                  <div className="flex h-full items-center justify-center">
-                    <span className="text-xs text-gym-text-muted">Before</span>
-                  </div>
+                <div className="aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-b from-gym-elevated to-gym-surface">
+                  {beforeImage ? (
+                    <img
+                      src={beforeImage}
+                      alt="Before"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <span className="text-xs text-gym-text-muted">Before</span>
+                    </div>
+                  )}
                 </div>
                 <p className="text-center text-xs font-medium text-gym-text-muted">Before</p>
               </div>
               <div className="space-y-2">
-                <div className="aspect-[3/4] rounded-xl bg-gradient-to-b from-gym-gold/20 to-gym-gold/5">
-                  <div className="flex h-full items-center justify-center">
-                    <span className="text-xs text-gym-gold">After</span>
-                  </div>
+                <div className="aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-b from-gym-gold/20 to-gym-gold/5">
+                  {afterImage ? (
+                    <img
+                      src={afterImage}
+                      alt="After"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <span className="text-xs text-gym-gold">After</span>
+                    </div>
+                  )}
                 </div>
                 <p className="text-center text-xs font-medium text-gym-gold">After</p>
               </div>

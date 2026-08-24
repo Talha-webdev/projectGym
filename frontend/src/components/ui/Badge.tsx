@@ -1,6 +1,6 @@
 import { HTMLAttributes } from "react";
 
-type BadgeVariant = "default" | "premium" | "success" | "warning" | "error" | "info";
+type BadgeVariant = "default" | "gold" | "success" | "warning" | "error" | "info";
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;
@@ -8,7 +8,7 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 
 const variantClasses: Record<BadgeVariant, string> = {
   default: "bg-gym-surface text-gym-text-secondary border border-gym-border",
-  premium: "bg-gym-gold/15 text-gym-gold border border-gym-gold/30 uppercase tracking-wider text-[0.65rem] font-bold",
+  gold: "bg-gym-gold/15 text-gym-gold border border-gym-gold/30 uppercase tracking-wider text-[0.65rem] font-bold",
   success: "bg-gym-success/10 text-gym-success border border-gym-success/20",
   warning: "bg-gym-warning/10 text-gym-warning border border-gym-warning/20",
   error: "bg-gym-error/10 text-gym-error border border-gym-error/20",

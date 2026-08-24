@@ -33,7 +33,6 @@ class SearchService:
                 Video.slug.label("slug"),
                 Video.thumbnail_url.label("thumbnail_url"),
                 func.coalesce(Video.description, "").label("excerpt"),
-                Video.is_premium.label("is_premium"),
                 Video.created_at.label("created_at"),
             )
             .where(
@@ -49,7 +48,6 @@ class SearchService:
                 Blog.slug.label("slug"),
                 Blog.cover_image_url.label("thumbnail_url"),
                 func.coalesce(Blog.excerpt, Blog.content).label("excerpt"),
-                Blog.is_premium.label("is_premium"),
                 Blog.created_at.label("created_at"),
             )
             .where(
@@ -68,7 +66,6 @@ class SearchService:
                 Gallery.id.cast(String).label("slug"),
                 Gallery.cloudinary_url.label("thumbnail_url"),
                 func.coalesce(Gallery.category, "").label("excerpt"),
-                literal(False).label("is_premium"),
                 Gallery.created_at.label("created_at"),
             )
             .where(
@@ -103,7 +100,6 @@ class SearchService:
                 source_type=row.source_type,
                 thumbnail_url=row.thumbnail_url,
                 excerpt=row.excerpt[:200] + "..." if row.excerpt and len(row.excerpt) > 200 else row.excerpt,
-                is_premium=row.is_premium,
                 created_at=row.created_at,
             )
             for row in rows

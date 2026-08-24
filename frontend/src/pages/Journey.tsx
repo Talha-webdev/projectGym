@@ -30,7 +30,7 @@ const timeline = [
     year: "2022",
     title: "150+ lbs — The Transformation",
     description:
-      "I hit my goal and kept going. Lost over 150 pounds and gained a new purpose. Project GYM was born — not as a business, but as a mission to give everyone the roadmap I wish I'd had.",
+      "I hit my goal and kept going. Lost over 150 pounds and gained a new purpose. LH Fitness was born — not as a business, but as a mission to give everyone the roadmap I wish I'd had.",
     image: null,
   },
   {
@@ -44,7 +44,7 @@ const timeline = [
     year: "2024",
     title: "10,000+ Hours and Growing",
     description:
-      "Today, Project GYM is a global community. Thousands of lives changed, millions of pounds lost collectively, and we're just getting started. The journey continues.",
+      "Today, LH Fitness is a global community. Thousands of lives changed, millions of pounds lost collectively, and we're just getting started. The journey continues.",
     image: null,
   },
 ];
@@ -72,7 +72,7 @@ export default function Journey() {
       exit={{ opacity: 0 }}
     >
       <SEOHead
-        title="My Journey - Project GYM"
+        title="My Journey - LH Fitness"
         description="Follow Coach's complete transformation journey from 300+ lbs to fitness coach. A timeline of discipline, consistency, and triumph."
         canonical="/journey"
       />
@@ -359,7 +359,7 @@ export default function Journey() {
               </p>
               <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                 <Link
-                  to="/pricing"
+                  to="/register"
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-gym-gold px-5 py-2.5 text-sm font-semibold text-black transition-all duration-200 hover:bg-gym-gold-hover active:scale-[0.98]"
                 >
                   Begin Your Journey <ArrowRight className="h-4 w-4" />

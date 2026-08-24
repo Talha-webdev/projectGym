@@ -1,12 +1,3 @@
-export interface Testimonial {
-  id: string;
-  name: string;
-  role: string | null;
-  content: string;
-  avatar_url: string | null;
-  sort_order: number;
-}
-
 export interface JourneyItem {
   id: string;
   title: string;

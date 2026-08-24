@@ -54,7 +54,7 @@ export default function Register() {
     setIsSubmitting(true);
     try {
       await register({ full_name: fullName, email, password });
-      navigate("/", { replace: true });
+      navigate("/check-email", { state: { email } });
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string } } };
       const message =
@@ -69,7 +69,7 @@ export default function Register() {
     <>
       <SEOHead
         title="Create Account"
-        description="Join Project GYM today and start your fitness transformation. Sign up for free and get access to exclusive content."
+        description="Join LH Fitness today and start your fitness transformation. Sign up for free and get access to workout videos, blogs, and more."
         canonical="/register"
       />
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
@@ -84,7 +84,7 @@ export default function Register() {
           <div className="mb-8 text-center">
             <h1 className="font-heading text-3xl font-bold text-gym-gold">Create Account</h1>
             <p className="mt-2 text-sm text-gym-text-secondary">
-              Join the Project GYM community
+              Join the LH Fitness community
             </p>
           </div>
 
@@ -191,7 +191,7 @@ export default function Register() {
             />
 
             <Button type="submit" isLoading={isSubmitting} className="w-full" size="lg">
-              {isSubmitting ? "Creating account..." : "Create Account"}
+              {isSubmitting ? "Sending verification email..." : "Create Account"}
               {!isSubmitting && <ArrowRight className="h-4 w-4" />}
             </Button>
           </form>

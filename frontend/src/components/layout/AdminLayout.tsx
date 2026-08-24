@@ -7,8 +7,8 @@ import {
   FileText,
   Image,
   MessageSquare,
-  CreditCard,
   Settings,
+  Globe,
   LogOut,
   ChevronRight,
   Menu,
@@ -25,8 +25,8 @@ const sidebarLinks = [
   { label: "Blogs", href: "/admin/blogs", icon: FileText },
   { label: "Gallery", href: "/admin/gallery", icon: Image },
   { label: "Comments", href: "/admin/comments", icon: MessageSquare },
-  { label: "Payments", href: "/admin/payments", icon: CreditCard },
   { label: "Settings", href: "/admin/settings", icon: Settings },
+  { label: "Website Settings", href: "/admin/website-settings", icon: Globe },
 ];
 
 export const AdminLayout = memo(function AdminLayout({ children }: { children: React.ReactNode }) {

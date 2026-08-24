@@ -12,7 +12,6 @@ class VideoResponse(BaseModel):
     cloudinary_url: str
     thumbnail_url: Optional[str] = None
     duration: Optional[int] = None
-    is_premium: bool
     view_count: int
     category: Optional[str] = None
     created_at: datetime
@@ -27,7 +26,6 @@ class VideoCreateRequest(BaseModel):
     cloudinary_url: str
     thumbnail_url: Optional[str] = None
     duration: Optional[int] = None
-    is_premium: bool = False
     category_ids: Optional[list[str]] = None
 
     @field_validator("title")
@@ -60,7 +58,6 @@ class VideoUpdateRequest(BaseModel):
     description: Optional[str] = None
     thumbnail_url: Optional[str] = None
     duration: Optional[int] = None
-    is_premium: Optional[bool] = None
     category_ids: Optional[list[str]] = None
 
     @field_validator("title")

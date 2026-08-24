@@ -1,3 +1,4 @@
+import logging
 import os
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -12,6 +13,8 @@ from app.schemas.video import VideoCreateRequest, VideoResponse
 from app.services.cloudinary_service import upload_image, upload_video
 from app.services.gallery_service import GalleryService
 from app.services.video_service import VideoService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 
@@ -93,13 +96,19 @@ async def upload_video_endpoint(
     description: str | None = Form(None),
     thumbnail: UploadFile | None = File(None),
     duration: int | None = Form(None),
-    is_premium: bool = Form(False),
     category_ids: str | None = Form(None),
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ):
     _validate_video(file)
-    data = await file.read()
+    try:
+        data = await file.read()
+    except Exception as exc:
+        logger.exception("Failed to read video file: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail="Failed to read video file. It may be too large.",
+        )
     if len(data) > MAX_VIDEO_SIZE_BYTES:
         _reject(
             "Video is too large. Maximum size is 200 MB.",
@@ -129,14 +138,15 @@ async def upload_video_endpoint(
         raise _upload_error(exc)
 
     try:
+        cloud_duration = uploaded.get("duration")
+        effective_duration = duration if duration is not None else (int(round(cloud_duration)) if cloud_duration is not None else None)
         request = VideoCreateRequest(
             title=title,
             description=description,
             cloudinary_public_id=uploaded["public_id"],
             cloudinary_url=uploaded["secure_url"],
             thumbnail_url=thumbnail_url,
-            duration=duration if duration is not None else uploaded.get("duration"),
-            is_premium=is_premium,
+            duration=effective_duration,
             category_ids=_split_ids(category_ids),
         )
     except ValidationError as exc:

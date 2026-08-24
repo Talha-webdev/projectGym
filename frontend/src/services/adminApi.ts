@@ -7,9 +7,7 @@ import type { GalleryItem } from "@/types/gallery";
 import type {
   DashboardData,
   AdminUser,
-  AdminPayment,
   AdminComment,
-  MembershipActionData,
   SiteSettings,
 } from "@/types/admin";
 
@@ -22,12 +20,6 @@ export const adminApi = {
 
   getUserDetail: (userId: string) =>
     api.get<AdminUser>(`/admin/users/${userId}`),
-
-  manageMembership: (userId: string, data: MembershipActionData) =>
-    api.patch<AdminUser>(`/admin/users/${userId}/membership`, data),
-
-  getPayments: (params?: { page?: number; per_page?: number }) =>
-    api.get<PaginatedResponse<AdminPayment>>("/admin/payments", { params }),
 
   getComments: (params?: { page?: number; per_page?: number }) =>
     api.get<PaginatedResponse<AdminComment>>("/admin/comments", { params }),
@@ -52,6 +44,9 @@ export const adminApi = {
 
   createBlog: (data: Record<string, unknown>) =>
     api.post<BlogDetail>("/blogs", data),
+
+  getAdminBlogs: (params?: Record<string, string | number>) =>
+    api.get<PaginatedResponse<BlogDetail>>("/admin/blogs", { params }),
 
   updateBlog: (slug: string, data: Record<string, unknown>) =>
     api.patch<BlogDetail>(`/blogs/${slug}`, data),

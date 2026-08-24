@@ -13,8 +13,8 @@ class TestContactAPI:
         payload = {
             "name": "John Doe",
             "email": "john@example.com",
-            "subject": "Question about membership",
-            "message": "I'd like to know more about the 3-month plan.",
+            "subject": "Question about training programs",
+            "message": "I'd like to know more about your coaching services.",
         }
         response = await async_client.post("/api/v1/contact", json=payload)
         assert response.status_code == 201

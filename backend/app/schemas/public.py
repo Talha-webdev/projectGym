@@ -4,17 +4,6 @@ from typing import Optional
 from datetime import datetime
 
 
-class TestimonialResponse(BaseModel):
-    id: uuid.UUID
-    name: str
-    role: Optional[str] = None
-    content: str
-    avatar_url: Optional[str] = None
-    sort_order: int = 0
-
-    model_config = {"from_attributes": True}
-
-
 class JourneyItemResponse(BaseModel):
     id: uuid.UUID
     title: str

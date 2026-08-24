@@ -4,7 +4,6 @@ export interface Blog {
   slug: string;
   excerpt: string | null;
   cover_image_url: string | null;
-  is_premium: boolean;
   read_time_minutes: number | null;
   view_count: number;
   published_at: string | null;

@@ -31,7 +31,6 @@ def _fake_video_response() -> VideoResponse:
         title="Workout Video",
         slug="workout-video",
         cloudinary_url="https://res.cloudinary.com/demo/video/upload/v1/videos/abc.mp4",
-        is_premium=False,
         view_count=0,
         created_at=datetime.now(timezone.utc),
     )
@@ -54,10 +53,13 @@ def _fake_gallery_response() -> GalleryResponse:
 @pytest.mark.asyncio
 async def test_admin_video_upload_success(async_client: AsyncClient, override_get_db, mock_db, admin_headers):
     admin_user = MockUser(is_admin=True)
-    mock_db.execute.side_effect = [_admin_result(admin_user), _slug_result()]
+    slug_check = _slug_result()
+    video_result = MagicMock()
+    video_result.scalar_one_or_none.return_value = MockVideo()
+    mock_db.execute.side_effect = [_admin_result(admin_user), slug_check, video_result]
 
     files = {"file": ("workout.mp4", b"fake-video-bytes", "video/mp4")}
-    data = {"title": "Workout Video", "is_premium": "false"}
+    data = {"title": "Workout Video"}
 
     with (
         patch(

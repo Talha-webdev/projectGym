@@ -19,7 +19,6 @@ class SEOService:
             {"loc": "/videos", "priority": "0.9", "changefreq": "weekly"},
             {"loc": "/blogs", "priority": "0.9", "changefreq": "weekly"},
             {"loc": "/gallery", "priority": "0.7", "changefreq": "monthly"},
-            {"loc": "/pricing", "priority": "0.8", "changefreq": "monthly"},
             {"loc": "/contact", "priority": "0.6", "changefreq": "monthly"},
         ]
         urls.extend(static_pages)
@@ -86,7 +85,6 @@ Allow: /
 Disallow: /admin/
 Disallow: /profile/
 Disallow: /dashboard/
-Disallow: /membership/
 
 Sitemap: {settings.FRONTEND_URL.rstrip('/')}/sitemap.xml
 """

@@ -10,7 +10,6 @@ class BlogResponse(BaseModel):
     slug: str
     excerpt: Optional[str] = None
     cover_image_url: Optional[str] = None
-    is_premium: bool
     read_time_minutes: Optional[int] = None
     view_count: int
     published_at: Optional[datetime] = None
@@ -27,7 +26,6 @@ class BlogDetailResponse(BaseModel):
     content: str
     excerpt: Optional[str] = None
     cover_image_url: Optional[str] = None
-    is_premium: bool
     read_time_minutes: Optional[int] = None
     meta_description: Optional[str] = None
     view_count: int
@@ -43,7 +41,6 @@ class BlogCreateRequest(BaseModel):
     content: str
     excerpt: Optional[str] = None
     cover_image_url: Optional[str] = None
-    is_premium: bool = False
     meta_description: Optional[str] = None
     tag_ids: Optional[list[str]] = None
     published: bool = False
@@ -86,7 +83,6 @@ class BlogUpdateRequest(BaseModel):
     content: Optional[str] = None
     excerpt: Optional[str] = None
     cover_image_url: Optional[str] = None
-    is_premium: Optional[bool] = None
     meta_description: Optional[str] = None
     tag_ids: Optional[list[str]] = None
     published: Optional[bool] = None

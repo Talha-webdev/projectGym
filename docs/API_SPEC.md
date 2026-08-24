@@ -5,12 +5,13 @@ Base URL: `/api/v1`
 ## Auth
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/auth/register` | No | Register user |
+| POST | `/auth/register` | No | Register user (sends verification email) |
 | POST | `/auth/login` | No | Login, returns tokens |
 | POST | `/auth/refresh` | Refresh | Refresh access token |
-| POST | `/auth/logout` | JWT | Revoke refresh token |
+| POST | `/auth/logout` | JWT | Blacklist access token, revoke refresh token |
 | POST | `/auth/forgot-password` | No | Send reset email |
 | POST | `/auth/reset-password` | No | Reset with token |
+| POST | `/auth/verify-email` | No | Verify email with token |
 
 ## Users
 | Method | Endpoint | Auth | Description |
@@ -18,33 +19,22 @@ Base URL: `/api/v1`
 | GET | `/users/me` | JWT | Current user profile |
 | PATCH | `/users/me` | JWT | Update profile |
 | PATCH | `/users/me/password` | JWT | Change password |
-| DELETE | `/users/me` | JWT | Delete account (GDPR) |
-
-## Membership
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/membership/status` | JWT | Membership status |
-| POST | `/membership/create-checkout` | JWT | Stripe checkout |
-| POST | `/membership/webhook` | Stripe sig | Stripe webhook |
-| GET | `/membership/payments` | JWT | Payment history |
 
 ## Videos
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | GET | `/videos` | No | List videos |
-| GET | `/videos/{slug}` | No* | Video detail |
+| GET | `/videos/{slug}` | No | Video detail |
 | POST | `/videos` | Admin | Create video |
 | PATCH | `/videos/{slug}` | Admin | Update video |
 | DELETE | `/videos/{slug}` | Admin | Delete video |
 | GET | `/categories` | No | List categories |
 
-*Premium content requires active membership.
-
 ## Blogs
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | GET | `/blogs` | No | List blogs |
-| GET | `/blogs/{slug}` | No* | Blog detail |
+| GET | `/blogs/{slug}` | No | Blog detail |
 | POST | `/blogs` | Admin | Create blog |
 | PATCH | `/blogs/{slug}` | Admin | Update blog |
 | DELETE | `/blogs/{slug}` | Admin | Delete blog |
@@ -55,7 +45,7 @@ Base URL: `/api/v1`
 |--------|----------|------|-------------|
 | GET | `/comments/video/{video_id}` | No | Video comments |
 | GET | `/comments/blog/{blog_id}` | No | Blog comments |
-| POST | `/comments` | Member | Create comment |
+| POST | `/comments` | JWT | Create comment |
 | DELETE | `/comments/{id}` | Owner/Admin | Delete comment |
 
 ## Gallery
@@ -63,7 +53,6 @@ Base URL: `/api/v1`
 |--------|----------|------|-------------|
 | GET | `/gallery` | No | List gallery |
 | POST | `/gallery` | Admin | Upload image |
-| PATCH | `/gallery/{id}` | Admin | Update image |
 | DELETE | `/gallery/{id}` | Admin | Delete image |
 
 ## Contact
@@ -77,19 +66,35 @@ Base URL: `/api/v1`
 | GET | `/admin/dashboard` | Admin | Analytics |
 | GET | `/admin/users` | Admin | List users |
 | GET | `/admin/users/{id}` | Admin | User detail |
-| PATCH | `/admin/users/{id}/membership` | Admin | Manage membership |
-| GET | `/admin/payments` | Admin | Payment logs |
 | GET | `/admin/comments` | Admin | All comments |
 | DELETE | `/admin/comments/{id}` | Admin | Delete comment |
 | GET | `/admin/settings` | Admin | Site settings |
 | PATCH | `/admin/settings` | Admin | Update settings |
 
+## Uploads
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/uploads/image` | Admin | Upload image to Cloudinary |
+| POST | `/uploads/video` | Admin | Upload video to Cloudinary |
+
+## Search
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/search` | No | Global search across content |
+
 ## Public
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
+| GET | `/public/website-settings` | No | Site config (typed response) |
 | GET | `/public/journey` | No | Journey timeline |
-| GET | `/public/testimonials` | No | Testimonials |
-| GET | `/public/site-settings` | No | Site config |
+| GET | `/public/statistics` | No | Site statistics |
+| GET | `/public/faq` | No | FAQ entries |
+
+## SEO
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/sitemap.xml` | No | Dynamic sitemap |
+| GET | `/robots.txt` | No | Robots file |
 
 ## Standard Response Formats
 ### Success
