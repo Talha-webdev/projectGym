@@ -60,6 +60,7 @@ class Settings(BaseSettings):
                 )
             if "localhost" in self.CORS_ORIGINS:
                 critical.append(
+                    
                     "CORS_ORIGINS contains localhost in production"
                 )
         if critical:
