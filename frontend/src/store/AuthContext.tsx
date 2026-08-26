@@ -6,7 +6,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import type { User, LoginRequest, RegisterRequest, PendingRegistrationResponse } from "@/types/auth";
+import type { User, LoginRequest, RegisterRequest } from "@/types/auth";
 import { authApi } from "@/services/authApi";
 
 interface AuthContextType {
@@ -15,7 +15,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   login: (data: LoginRequest) => Promise<void>;
-  register: (data: RegisterRequest) => Promise<PendingRegistrationResponse>;
+  register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User) => void;
   completeRegistration: (data: { access_token: string; refresh_token: string; user: User }) => void;
@@ -51,8 +51,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const register = useCallback(async (data: RegisterRequest) => {
-    const { data: response } = await authApi.register(data);
-    return response;
+    const { data: tokens } = await authApi.register(data);
+    localStorage.setItem("access_token", tokens.access_token);
+    localStorage.setItem("refresh_token", tokens.refresh_token);
+    setUser(tokens.user);
   }, []);
 
   const completeRegistration = useCallback((tokens: { access_token: string; refresh_token: string; user: User }) => {

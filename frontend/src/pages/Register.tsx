@@ -54,7 +54,7 @@ export default function Register() {
     setIsSubmitting(true);
     try {
       await register({ full_name: fullName, email, password });
-      navigate("/check-email", { state: { email } });
+      navigate("/dashboard", { replace: true });
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string } } };
       const message =
@@ -191,7 +191,7 @@ export default function Register() {
             />
 
             <Button type="submit" isLoading={isSubmitting} className="w-full" size="lg">
-              {isSubmitting ? "Sending verification email..." : "Create Account"}
+              {isSubmitting ? "Creating account..." : "Create Account"}
               {!isSubmitting && <ArrowRight className="h-4 w-4" />}
             </Button>
           </form>

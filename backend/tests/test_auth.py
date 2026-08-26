@@ -18,17 +18,44 @@ async def test_register_success(async_client: AsyncClient, override_get_db, mock
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = None
     mock_db.execute.return_value = mock_result
+
+    from tests.conftest import MockUser
+    fake_user = MockUser()
+    fake_user.email = "newuser@example.com"
+    fake_user.full_name = "New User"
+
+    async def mock_refresh(obj):
+        obj.id = fake_user.id
+        obj.is_admin = fake_user.is_admin
+        obj.is_verified = True
+        obj.created_at = fake_user.created_at
+        obj.updated_at = fake_user.updated_at
+
+    mock_db.refresh = AsyncMock(side_effect=mock_refresh)
+
+    fake_user_resp = UserResponse(
+        id=fake_user.id,
+        email=fake_user.email,
+        full_name=fake_user.full_name,
+        is_admin=fake_user.is_admin,
+        is_verified=True,
+        created_at=fake_user.created_at,
+    )
+
     payload = {
         "email": "newuser@example.com",
         "password": "StrongPass123!",
         "full_name": "New User",
     }
-    with patch("app.api.auth.send_verification_email", new_callable=AsyncMock, return_value=True):
+    with patch.object(UserResponse, "model_validate", return_value=fake_user_resp):
         response = await async_client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 200
     data = response.json()
-    assert "message" in data
-    assert data["email"] == payload["email"]
+    assert "access_token" in data
+    assert "refresh_token" in data
+    assert "user" in data
+    assert data["user"]["email"] == payload["email"]
+    assert data["user"]["is_verified"] is True
 
 
 @pytest.mark.asyncio

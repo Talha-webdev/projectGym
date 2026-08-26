@@ -1,9 +1,9 @@
 import api from "@/services/api";
-import type { User, AuthTokens, LoginResponse, LoginRequest, RegisterRequest, PendingRegistrationResponse, VerifyEmailResponse } from "@/types/auth";
+import type { User, AuthTokens, LoginResponse, LoginRequest, RegisterRequest, VerifyEmailResponse } from "@/types/auth";
 
 export const authApi = {
   register: (data: RegisterRequest) =>
-    api.post<PendingRegistrationResponse>("/auth/register", data),
+    api.post<LoginResponse>("/auth/register", data),
 
   login: (data: LoginRequest) =>
     api.post<LoginResponse>("/auth/login", data),

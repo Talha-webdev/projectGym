@@ -14,7 +14,6 @@ from app.schemas.auth import (
     ForgotPasswordRequest,
     LoginRequest,
     LoginResponse,
-    PendingRegistrationResponse,
     RefreshRequest,
     RegisterRequest,
     ResetPasswordRequest,
@@ -22,7 +21,7 @@ from app.schemas.auth import (
     VerifyEmailRequest,
 )
 from app.schemas.user import UserResponse
-from app.services.email_service import send_password_reset_email, send_verification_email
+from app.services.email_service import send_password_reset_email
 from app.utils.rate_limiter import rate_limiter
 from app.utils.security import (
     create_access_token,
@@ -58,7 +57,7 @@ async def _issue_refresh_token(user_id, db: AsyncSession) -> str:
 
 @router.post(
     "/register",
-    response_model=PendingRegistrationResponse,
+    response_model=LoginResponse,
     status_code=status.HTTP_200_OK,
 )
 async def register(
@@ -79,49 +78,25 @@ async def register(
             detail="Email already registered",
         )
 
-    existing_pending = await db.execute(
-        select(PendingRegistration).where(PendingRegistration.email == email)
-    )
-    pending = existing_pending.scalar_one_or_none()
-    if pending is not None:
-        if not pending.is_expired():
-            pending.token = PendingRegistration.generate_token()
-            pending.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
-            pending.full_name = request.full_name
-            pending.password_hash = hash_password(request.password)
-            await db.flush()
-            email_sent = await send_verification_email(email, request.full_name, pending.token)
-            if not email_sent:
-                logger.warning("Verification email failed to send to %s", email)
-            await db.commit()
-            return PendingRegistrationResponse(
-                message="A new verification email has been sent. Please check your inbox.",
-                email=email,
-            )
-        else:
-            await db.delete(pending)
-            await db.flush()
-
-    token = PendingRegistration.generate_token()
-    pending = PendingRegistration(
+    user = User(
         email=email,
-        full_name=request.full_name,
         password_hash=hash_password(request.password),
-        token=token,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+        full_name=request.full_name,
+        is_verified=True,
     )
-    db.add(pending)
+    db.add(user)
     await db.flush()
 
-    email_sent = await send_verification_email(email, request.full_name, token)
-    if not email_sent:
-        logger.warning("Verification email failed to send to %s", email)
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = await _issue_refresh_token(user.id, db)
 
     await db.commit()
+    await db.refresh(user)
 
-    return PendingRegistrationResponse(
-        message="Verification email sent. Please check your inbox to complete registration.",
-        email=email,
+    return LoginResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=UserResponse.model_validate(user),
     )
 
 
